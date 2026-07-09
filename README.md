@@ -6,7 +6,7 @@ ELS is a multi tenant live support chat platform and shared team inbox designed 
 
 Instead of relying on standard HTTP poll loops, ELS leverages a high throughput, bidirectional event matrix. The system is split into two completely decoupled frontends powered by a single optimized, stateless backend.
 
-![alt text](./docs/infographics.png)
+![](./images/infographics.png)
 
 ## Core Highlights & Business Workflows
 
