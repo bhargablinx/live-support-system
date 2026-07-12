@@ -21,6 +21,7 @@
     },
     "homepage": "https://github.com/bhargablinx/live-support-system#readme",
     "devDependencies": {
+        "@types/cors": "^2.8.19",
         "@types/node": "^26.1.1",
         "prettier": "^3.9.5",
         "tsx": "^4.23.0",
