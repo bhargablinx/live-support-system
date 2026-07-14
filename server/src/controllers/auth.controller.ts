@@ -75,8 +75,61 @@ const register = asyncHandler(async (req: Request, res: Response) => {
     );
 });
 
-
 // Login / Signin
+const login = asyncHandler(async (req: Request, res: Response) => {
+    const { email, password } = req.body;
+
+    if (!email || !password)
+        throw new ApiError({
+            statusCode: 400,
+            message: "All fields are required",
+            error: "Bad Request",
+        });
+
+    const user = await prisma.user.findUnique({
+        where: {
+            email: email.toLowerCase()
+        },
+        include: {
+            organization: true
+        }
+    })
+
+    if (!user)
+        throw new ApiError({
+            statusCode: 404,
+            message: "User not found",
+            error: "Not Found",
+        });
+
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash)
+
+    if (!isPasswordValid)
+        throw new ApiError({
+            statusCode: 401,
+            message: "Invalid credentials",
+            error: "Unauthorized",
+        });
+
+    return res.status(200).json(
+        new ApiResponse({
+            statusCode: 200,
+            message: "Login successful",
+            data: {
+                organization: {
+                    id: user.organization.id,
+                    name: user.organization.name,
+                },
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    role: user.role,
+                    createdAt: user.createdAt
+                }
+            }
+        })
+    )
+})
 
 // Logout
 
@@ -84,4 +137,4 @@ const register = asyncHandler(async (req: Request, res: Response) => {
 
 // Get Me
 
-export { register }
+export { register, login }
