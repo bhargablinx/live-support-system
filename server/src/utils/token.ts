@@ -2,13 +2,7 @@ import jwt from "jsonwebtoken";
 import prisma from "./prisma.js";
 import { ApiError } from "./ApiError.js";
 import "dotenv/config"
-
-interface user {
-    id: string;
-    email?: string;
-    role?: string;
-    organizationId?: string;
-}
+import type { user } from "../utils/types.js"
 
 export const generateAccessToken = (user: user): string => {
     return jwt.sign(
