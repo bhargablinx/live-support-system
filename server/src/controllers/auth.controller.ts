@@ -115,6 +115,15 @@ const login = asyncHandler(async (req: Request, res: Response) => {
 
     const { accessToken, refreshToken } = await generateToken(user.id)
 
+    await prisma.user.update({
+        where: {
+            id: user.id
+        },
+        data: {
+            refreshToken: refreshToken
+        }
+    })
+
     return res.status(200)
         .cookie("accessToken", accessToken, cookieOption)
         .cookie("refreshToken", refreshToken, cookieOption)

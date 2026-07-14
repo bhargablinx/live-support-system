@@ -42,6 +42,7 @@ model User {
   email          String         @unique
   passwordHash   String
   role           UserRole       @default(AGENT)
+  refreshToken   String?
   conversations  Conversation[] @relation("AssignedAgent")
   createdAt      DateTime       @default(now())
 
