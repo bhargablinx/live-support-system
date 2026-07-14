@@ -6,6 +6,9 @@ import bcrypt from "bcrypt"
 import prisma from '../utils/prisma.js';
 import { generateToken } from '../utils/token.js';
 import { cookieOption } from '../utils/helper.js';
+import jwt from "jsonwebtoken"
+import "dotenv/config"
+import type { user } from '../utils/types.js';
 
 // Register / Signup
 const register = asyncHandler(async (req: Request, res: Response) => {
@@ -161,8 +164,55 @@ const logout = asyncHandler(async (req: Request, res: Response) => {
         )
 })
 
-// Refresh
+// Refresh Access & Refresh Token
+const refreshAccessToken = asyncHandler(async (req: Request, res: Response) => {
+    const clientRefreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+
+    if (!clientRefreshToken)
+        throw new ApiError({
+            statusCode: 401,
+            message: "Refresh token is required",
+            error: "Unauthorized",
+        })
+
+    const decodeToken = jwt.verify(clientRefreshToken, process.env.REFRESH_TOKEN_SECRET || "") as user;
+
+    const user = await prisma.user.findUnique({
+        where: {
+            id: decodeToken.id
+        }
+    })
+
+    if (!user || user.refreshToken !== clientRefreshToken)
+        throw new ApiError({
+            statusCode: 401,
+            message: "Unauthorized",
+            error: "Unauthorized",
+        })
+
+    const { accessToken, refreshToken } = await generateToken(user.id)
+
+    await prisma.user.update({
+        where: {
+            id: user.id
+        },
+        data: {
+            refreshToken: refreshToken
+        }
+    })
+
+    return res.status(200)
+        .cookie("accessToken", accessToken, cookieOption)
+        .cookie("refreshToken", refreshToken, cookieOption)
+        .json(
+            new ApiResponse({
+                statusCode: 200,
+                message: "Refresh token successful",
+                data: null
+            })
+        )
+})
 
 // Get Me
 
-export { register, login, logout }
+export { register, login, logout, refreshAccessToken }
