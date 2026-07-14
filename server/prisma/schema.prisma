@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  AGENT
+}
+
+enum ConversationStatus {
+  NEW
+  UNASSIGNED
+  CLAIMED
+  ACTIVE
+  RESOLVED
+  ARCHIVED
+}
+
+enum SenderType {
+  VISITOR
+  AGENT
+}
+
+model Organization {
+  id            String         @id @default(cuid())
+  name          String
+  users         User[]
+  visitors      Visitor[]
+  conversations Conversation[]
+  createdAt     DateTime       @default(now())
+}
+
+model User {
+  id             String         @id @default(cuid())
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  email          String         @unique
+  passwordHash   String
+  role           UserRole       @default(AGENT)
+  conversations  Conversation[] @relation("AssignedAgent")
+  createdAt      DateTime       @default(now())
+
+  @@index([organizationId])
+}
+
+model Visitor {
+  id             String         @id @default(cuid())
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  token          String         @unique
+  conversations  Conversation[]
+  createdAt      DateTime       @default(now())
+
+  @@index([organizationId])
+}
+
+model Conversation {
+  id             String             @id @default(cuid())
+  organizationId String
+  organization   Organization       @relation(fields: [organizationId], references: [id])
+  visitorId      String
+  visitor        Visitor            @relation(fields: [visitorId], references: [id])
+  assignedUserId String?
+  assignedUser   User?              @relation("AssignedAgent", fields: [assignedUserId], references: [id])
+  status         ConversationStatus @default(NEW)
+  messages       Message[]
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  content        String
+  senderType     SenderType
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId])
+}

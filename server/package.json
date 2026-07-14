@@ -23,14 +23,19 @@
     "devDependencies": {
         "@types/cors": "^2.8.19",
         "@types/node": "^26.1.1",
+        "@types/pg": "^8.20.0",
         "prettier": "^3.9.5",
+        "prisma": "^7.8.0",
         "tsx": "^4.23.0",
         "typescript": "^7.0.2"
     },
     "dependencies": {
+        "@prisma/adapter-pg": "^7.8.0",
+        "@prisma/client": "^7.8.0",
         "@types/express": "^5.0.6",
         "cors": "^2.8.6",
         "dotenv": "^17.4.2",
-        "express": "^5.2.1"
+        "express": "^5.2.1",
+        "pg": "^8.22.0"
     }
 }
