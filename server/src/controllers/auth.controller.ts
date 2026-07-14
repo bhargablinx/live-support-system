@@ -139,9 +139,21 @@ const login = asyncHandler(async (req: Request, res: Response) => {
 })
 
 // Logout
+const logout = asyncHandler(async (req: Request, res: Response) => {
+    return res.status(200)
+        .clearCookie("accessToken", cookieOption)
+        .clearCookie("refreshToken", cookieOption)
+        .json(
+            new ApiResponse({
+                statusCode: 200,
+                message: "Logout successful",
+                data: null
+            })
+        )
+})
 
 // Refresh
 
 // Get Me
 
-export { register, login }
+export { register, login, logout }
