@@ -4,6 +4,8 @@ import { asyncHandler } from '../utils/helper.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import bcrypt from "bcrypt"
 import prisma from '../utils/prisma.js';
+import { generateToken } from '../utils/token.js';
+import { cookieOption } from '../utils/helper.js';
 
 // Register / Signup
 const register = asyncHandler(async (req: Request, res: Response) => {
@@ -111,24 +113,29 @@ const login = asyncHandler(async (req: Request, res: Response) => {
             error: "Unauthorized",
         });
 
-    return res.status(200).json(
-        new ApiResponse({
-            statusCode: 200,
-            message: "Login successful",
-            data: {
-                organization: {
-                    id: user.organization.id,
-                    name: user.organization.name,
-                },
-                user: {
-                    id: user.id,
-                    email: user.email,
-                    role: user.role,
-                    createdAt: user.createdAt
+    const { accessToken, refreshToken } = await generateToken(user.id)
+
+    return res.status(200)
+        .cookie("accessToken", accessToken, cookieOption)
+        .cookie("refreshToken", refreshToken, cookieOption)
+        .json(
+            new ApiResponse({
+                statusCode: 200,
+                message: "Login successful",
+                data: {
+                    organization: {
+                        id: user.organization.id,
+                        name: user.organization.name,
+                    },
+                    user: {
+                        id: user.id,
+                        email: user.email,
+                        role: user.role,
+                        createdAt: user.createdAt
+                    },
                 }
-            }
-        })
-    )
+            })
+        )
 })
 
 // Logout
