@@ -2,12 +2,7 @@ import { useState } from "react";
 import { MessageCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ChatPage from "./components/chat/ChatPage";
-
-interface Message {
-    id: number;
-    text: string;
-    isOwn: boolean;
-}
+import type { Message } from "./types/type";
 
 export default function App() {
     const [open, setOpen] = useState(false);
@@ -15,8 +10,10 @@ export default function App() {
     const [messages, setMessages] = useState<Message[]>([
         {
             id: 1,
-            text: "👋 Hi! How can we help you today?",
-            isOwn: false,
+            conversationId: "faf",
+            content: "👋 Hi! How can we help you today?",
+            senderType: "AGENT",
+            createdAt: new Date().toISOString()
         },
     ]);
 
@@ -25,8 +22,10 @@ export default function App() {
             ...prev,
             {
                 id: Date.now(),
-                text: message,
-                isOwn: true,
+                conversationId: "faf",
+                content: message,
+                senderType: "VISITOR",
+                createdAt: new Date().toISOString()
             },
         ]);
     };

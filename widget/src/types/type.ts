@@ -1,5 +1,7 @@
 export interface Message {
     id: number;
-    text: string;
-    isOwn: boolean;
+    conversationId: string;
+    content: string;
+    senderType: string;
+    createdAt: string;
 }

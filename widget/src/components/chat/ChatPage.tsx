@@ -66,8 +66,8 @@ export default function ChatPage({ open, setOpen, messages, onSend }: ChatPagePr
                 {messages.map((message) => (
                     <ChatBubble
                         key={message.id}
-                        message={message.text}
-                        isOwn={message.isOwn}
+                        message={message.content}
+                        isOwn={message.senderType === "VISITOR"}
                     />
                 ))}
             </div>
