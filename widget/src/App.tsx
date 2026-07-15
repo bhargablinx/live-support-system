@@ -1,7 +1,7 @@
 import { useState } from "react";
-
-import { ChatInput } from "@/components/chat/chat-input";
-import { ChatBubble } from "@/components/chat/chat-bubble";
+import { MessageCircle, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import ChatPage from "./components/chat/ChatPage";
 
 interface Message {
     id: number;
@@ -9,67 +9,53 @@ interface Message {
     isOwn: boolean;
 }
 
-function App() {
+export default function App() {
+    const [open, setOpen] = useState(false);
+
     const [messages, setMessages] = useState<Message[]>([
         {
             id: 1,
-            text: "👋 Welcome! This is a simple chat interface.",
+            text: "👋 Hi! How can we help you today?",
             isOwn: false,
         },
     ]);
 
     const handleSend = (message: string) => {
-        // Add user's message
-        const userMessage: Message = {
-            id: Date.now(),
-            text: message,
-            isOwn: true,
-        };
-
-        setMessages((prev) => [...prev, userMessage]);
-
-        // Fake agent reply
-        setTimeout(() => {
-            setMessages((prev) => [
-                ...prev,
-                {
-                    id: Date.now() + 1,
-                    text: `You said: "${message}"`,
-                    isOwn: false,
-                },
-            ]);
-        }, 800);
+        setMessages((prev) => [
+            ...prev,
+            {
+                id: Date.now(),
+                text: message,
+                isOwn: true,
+            },
+        ]);
     };
 
     return (
-        <main className="flex h-screen bg-muted/30">
-            <div className="mx-auto flex w-full max-w-5xl flex-col bg-background shadow-sm">
-                {/* Header */}
-                <header className="border-b px-6 py-4">
-                    <h1 className="text-lg font-semibold">
-                        Enterprise Live Support
-                    </h1>
-                    <p className="text-sm text-muted-foreground">
-                        Connected • Demo Chat
-                    </p>
-                </header>
-
-                {/* Messages */}
-                <section className="flex-1 overflow-y-auto px-6 py-6">
-                    {messages.map((message) => (
-                        <ChatBubble
-                            key={message.id}
-                            message={message.text}
-                            isOwn={message.isOwn}
-                        />
-                    ))}
-                </section>
-
-                {/* Input */}
-                <ChatInput onSend={handleSend} />
+        <div className="relative min-h-screen bg-muted/30">
+            {/* Your Home Page */}
+            <div className="container mx-auto py-20">
+                <h1 className="text-5xl font-bold">Enterprise Live Support</h1>
+                <p className="mt-4 text-muted-foreground">
+                    Demo landing page here...
+                </p>
             </div>
-        </main>
+
+            {/* Chat Window */}
+            <ChatPage open={open} setOpen={setOpen} messages={messages} onSend={handleSend} />
+
+            {/* Floating Button */}
+            <Button
+                size="icon"
+                className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-xl"
+                onClick={() => setOpen((prev) => !prev)}
+            >
+                {open ? (
+                    <X className="h-7 w-7" />
+                ) : (
+                    <MessageCircle className="h-7 w-7" />
+                )}
+            </Button>
+        </div>
     );
 }
-
-export default App;
