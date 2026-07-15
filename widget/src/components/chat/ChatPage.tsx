@@ -3,6 +3,11 @@ import { Button } from "../ui/button";
 import { ChatBubble } from "./chat-bubble";
 import { ChatInput } from "./chat-input";
 import type { Message } from "../../types/type";
+import { useEffect, useRef } from "react";
+import { createVisitor } from "@/lib/api";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/store/store";
+import { saveToLocal } from "@/lib/utils";
 
 interface ChatPageProps {
     open: boolean;
@@ -12,9 +17,28 @@ interface ChatPageProps {
 }
 
 export default function ChatPage({ open, setOpen, messages, onSend }: ChatPageProps) {
+    const hasOpenedRef = useRef(false);
+    const { organizationId } = useSelector((state: RootState) => state.auth)
+
     const handleSend = (message: string) => {
         onSend(message);
     };
+
+    useEffect(() => {
+        if (open && !hasOpenedRef.current) {
+            hasOpenedRef.current = true;
+
+            createVisitor(organizationId)
+                .then((res) => {
+                    console.log("Created visitor!");
+                    saveToLocal("visitorToken", res.visitorToken)
+                })
+                .catch((error) => {
+                    console.log("Error while creating visitor", error.message);
+                })
+
+        }
+    }, [open, organizationId]);
 
     if (!open) return null;
 
