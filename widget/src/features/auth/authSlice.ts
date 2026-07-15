@@ -8,7 +8,7 @@ interface AuthState {
 }
 
 const initialState: AuthState = {
-    organizationId: null,
+    organizationId: "cmrl2nuyw0000eknz1yorpmq1",
     visitorToken: null,
     loading: false,
     error: null,
