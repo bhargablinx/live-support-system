@@ -6,8 +6,6 @@ import authRouter from "./routes/auth.route.js"
 import visitorRouter from './routes/visitor.route.js'
 import conversationRouter from './routes/conversation.route.js'
 import { errorHandler } from "./middleware/errorHandler.js";
-import { authenticateSocket } from "./socket/authenticateSocket.js";
-import { io } from "./index.js";
 
 const app: Express = express();
 
@@ -16,7 +14,6 @@ app.use(express.json());
 app.use(express.urlencoded())
 app.use(cookieParser())
 
-io.use(authenticateSocket)
 
 // ROUTERS
 app.use("/api/v1/health", healthRouter)
