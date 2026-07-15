@@ -7,7 +7,7 @@ const createVisitor = async (organizationId: string) => {
         });
 
         if (response.data.success) {
-            console.log(response.data);
+            // console.log(response.data);
             return response.data.data;
         }
     } catch (error) {
