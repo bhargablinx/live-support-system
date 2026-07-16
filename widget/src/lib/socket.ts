@@ -7,13 +7,13 @@ export const getSocket = (visitorToken: string): Socket => {
     if (socket) return socket;
 
     socket = io(import.meta.env.VITE_API_BASE_URL, {
-        path: "/socket.io",
         auth: { visitorToken },
         autoConnect: true,
         reconnection: true,
         reconnectionAttempts: Infinity,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 10000,
+        transports: ["websocket", "polling"]
     })
 
     return socket
