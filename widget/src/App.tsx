@@ -1,33 +1,91 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MessageCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ChatPage from "./components/chat/ChatPage";
 import type { Message } from "./types/type";
+import { getSocket } from "./lib/socket";
+import { getFromLocal, saveToLocal } from "./lib/utils";
+import { createConversation } from "./lib/api";
+import { useSelector, useDispatch } from "react-redux";
+import type { RootState } from "./store/store";
+import { setVisitorToken } from "./features/auth/authSlice";
 
 export default function App() {
     const [open, setOpen] = useState(false);
+    const dispatch = useDispatch();
+    const { organizationId, visitorToken } = useSelector((state: RootState) => state.auth);
+    const [conversationId, setConversationId] = useState<string | null>(() => getFromLocal("conversationId"));
 
     const [messages, setMessages] = useState<Message[]>([
         {
             id: 1,
-            conversationId: "faf",
+            conversationId: "welcome",
             content: "👋 Hi! How can we help you today?",
             senderType: "AGENT",
             createdAt: new Date().toISOString()
         },
     ]);
 
-    const handleSend = (message: string) => {
-        setMessages((prev) => [
-            ...prev,
-            {
-                id: Date.now(),
-                conversationId: "faf",
-                content: message,
-                senderType: "VISITOR",
-                createdAt: new Date().toISOString()
-            },
-        ]);
+    // Initialize visitorToken from localStorage if available
+    useEffect(() => {
+        const storedToken = getFromLocal("visitorToken");
+        if (storedToken && !visitorToken) {
+            dispatch(setVisitorToken(storedToken));
+        }
+    }, [visitorToken, dispatch]);
+
+    // Socket message listening when visitorToken and conversationId exist
+    useEffect(() => {
+        if (!visitorToken || !conversationId) return;
+
+        const socket = getSocket(visitorToken);
+        socket.emit("join_room", { conversationId });
+
+        const handleReceiveMessage = (msg: Message) => {
+            setMessages((prev) => {
+                // Avoid duplicating messages already appended locally
+                if (prev.some((m) => String(m.id) === String(msg.id))) return prev;
+                return [...prev, msg];
+            });
+        };
+
+        socket.on("receive_message", handleReceiveMessage);
+
+        return () => {
+            socket.off("receive_message", handleReceiveMessage);
+        };
+    }, [visitorToken, conversationId]);
+
+    const handleSend = async (message: string) => {
+        let currentConvoId = conversationId;
+
+        if (!currentConvoId) {
+            if (!visitorToken) {
+                console.log("No visitor token available yet.");
+                return;
+            }
+            if (!organizationId) {
+                console.log("No organization ID available.");
+                return;
+            }
+
+            const res = await createConversation(organizationId, visitorToken);
+            if (res && res.conversationId) {
+                currentConvoId = res.conversationId;
+                saveToLocal("conversationId", res.conversationId);
+                setConversationId(res.conversationId);
+            } else {
+                console.log("Failed to create conversation");
+                return;
+            }
+        }
+
+        // Emit the message via socket
+        const socket = getSocket(visitorToken!);
+        socket.emit("send_message", {
+            content: message,
+            conversationId: currentConvoId
+        });
     };
 
     return (

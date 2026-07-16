@@ -16,11 +16,11 @@ const createVisitor = async (organizationId: string) => {
     }
 }
 
-const createConversation = async (organizationId: string, visitorId: string) => {
+const createConversation = async (organizationId: string, visitorToken: string) => {
     try {
         const response = await api.post(`/conversation`, {
             organizationId,
-            visitorId
+            visitorToken
         });
 
         if (response.data.success) {

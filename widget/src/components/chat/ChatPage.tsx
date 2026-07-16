@@ -5,9 +5,10 @@ import { ChatInput } from "./chat-input";
 import type { Message } from "../../types/type";
 import { useEffect, useRef } from "react";
 import { createVisitor } from "@/lib/api";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import type { RootState } from "@/store/store";
-import { saveToLocal } from "@/lib/utils";
+import { saveToLocal, getFromLocal } from "@/lib/utils";
+import { setVisitorToken } from "@/features/auth/authSlice";
 
 interface ChatPageProps {
     open: boolean;
@@ -18,7 +19,8 @@ interface ChatPageProps {
 
 export default function ChatPage({ open, setOpen, messages, onSend }: ChatPageProps) {
     const hasOpenedRef = useRef(false);
-    const { organizationId } = useSelector((state: RootState) => state.auth)
+    const { organizationId } = useSelector((state: RootState) => state.auth);
+    const dispatch = useDispatch();
 
     const handleSend = (message: string) => {
         onSend(message);
@@ -28,17 +30,29 @@ export default function ChatPage({ open, setOpen, messages, onSend }: ChatPagePr
         if (open && !hasOpenedRef.current) {
             hasOpenedRef.current = true;
 
+            const existingToken = getFromLocal("visitorToken");
+            if (existingToken) {
+                dispatch(setVisitorToken(existingToken));
+                return;
+            }
+
+            if (!organizationId) {
+                console.log("No organization ID found");
+                return;
+            }
+
             createVisitor(organizationId)
                 .then((res) => {
                     console.log("Created visitor!");
-                    saveToLocal("visitorToken", res.visitorToken)
+                    saveToLocal("visitorToken", res.visitorToken);
+                    dispatch(setVisitorToken(res.visitorToken));
                 })
                 .catch((error) => {
                     console.log("Error while creating visitor", error.message);
-                })
+                });
 
         }
-    }, [open, organizationId]);
+    }, [open, organizationId, dispatch]);
 
     if (!open) return null;
 
