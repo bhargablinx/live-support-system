@@ -2,7 +2,7 @@ import { X } from "lucide-react";
 import { Button } from "../ui/button";
 import { ChatBubble } from "./chat-bubble";
 import { ChatInput } from "./chat-input";
-import type { Message } from "../../types/type";
+import type { Message, SocketStatus } from "../../types/type";
 import { useEffect, useRef } from "react";
 import { createVisitor } from "@/lib/api";
 import { useSelector, useDispatch } from "react-redux";
@@ -15,9 +15,16 @@ interface ChatPageProps {
     setOpen: (open: boolean) => void;
     messages: Message[];
     onSend: (message: string) => void;
+    socketStatus: SocketStatus;
 }
 
-export default function ChatPage({ open, setOpen, messages, onSend }: ChatPageProps) {
+const statusConfig: Record<SocketStatus, { label: string; color: string; pulse: boolean }> = {
+    connecting: { label: "Connecting...", color: "bg-yellow-400", pulse: true },
+    connected: { label: "Connected", color: "bg-green-400", pulse: false },
+    disconnected: { label: "Disconnected", color: "bg-red-500", pulse: false },
+};
+
+export default function ChatPage({ open, setOpen, messages, onSend, socketStatus }: ChatPageProps) {
     const hasOpenedRef = useRef(false);
     const { organizationId } = useSelector((state: RootState) => state.auth);
     const dispatch = useDispatch();
@@ -62,7 +69,12 @@ export default function ChatPage({ open, setOpen, messages, onSend }: ChatPagePr
             <div className="flex items-center justify-between border-b bg-primary px-4 py-3 text-primary-foreground">
                 <div>
                     <h2 className="font-semibold">Support</h2>
-                    <p className="text-xs opacity-80">Typically replies instantly</p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                        <span
+                            className={`inline-block h-2 w-2 rounded-full ${statusConfig[socketStatus].color} ${statusConfig[socketStatus].pulse ? "animate-pulse" : ""}`}
+                        />
+                        <p className="text-xs opacity-80">{statusConfig[socketStatus].label}</p>
+                    </div>
                 </div>
 
                 <Button

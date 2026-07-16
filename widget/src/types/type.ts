@@ -6,6 +6,8 @@ export interface Message {
     createdAt: string;
 }
 
+export type SocketStatus = "connecting" | "connected" | "disconnected";
+
 export interface Conversation {
     id: string;
     visitorId: string;

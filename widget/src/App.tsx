@@ -3,6 +3,7 @@ import { MessageCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ChatPage from "./components/chat/ChatPage";
 import type { Message } from "./types/type";
+import type { SocketStatus } from "./types/type";
 import { getSocket } from "./lib/socket";
 import { getFromLocal, saveToLocal } from "./lib/utils";
 import { createConversation } from "./lib/api";
@@ -15,6 +16,11 @@ export default function App() {
     const dispatch = useDispatch();
     const { organizationId, visitorToken } = useSelector((state: RootState) => state.auth);
     const [conversationId, setConversationId] = useState<string | null>(() => getFromLocal("conversationId"));
+    const [socketStatus, setSocketStatus] = useState<SocketStatus>(() => {
+        if (!visitorToken) return "disconnected";
+        const socket = getSocket(visitorToken);
+        return socket.connected ? "connected" : "connecting";
+    });
 
     const [messages, setMessages] = useState<Message[]>([
         {
@@ -34,12 +40,24 @@ export default function App() {
         }
     }, [visitorToken, dispatch]);
 
-    // Socket message listening when visitorToken and conversationId exist
+    // Socket message listening + connection status tracking
     useEffect(() => {
-        if (!visitorToken || !conversationId) return;
+        if (!visitorToken) return;
 
         const socket = getSocket(visitorToken);
-        socket.emit("join_room", { conversationId });
+
+        const handleConnect = () => setSocketStatus("connected");
+        const handleDisconnect = () => setSocketStatus("disconnected");
+        const handleConnecting = () => setSocketStatus("connecting");
+
+        socket.on("connect", handleConnect);
+        socket.on("disconnect", handleDisconnect);
+        socket.on("reconnect_attempt", handleConnecting);
+        socket.on("connect_error", handleDisconnect);
+
+        if (conversationId) {
+            socket.emit("join_room", { conversationId });
+        }
 
         const handleReceiveMessage = (msg: Message) => {
             setMessages((prev) => {
@@ -52,6 +70,10 @@ export default function App() {
         socket.on("receive_message", handleReceiveMessage);
 
         return () => {
+            socket.off("connect", handleConnect);
+            socket.off("disconnect", handleDisconnect);
+            socket.off("reconnect_attempt", handleConnecting);
+            socket.off("connect_error", handleDisconnect);
             socket.off("receive_message", handleReceiveMessage);
         };
     }, [visitorToken, conversationId]);
@@ -99,7 +121,7 @@ export default function App() {
             </div>
 
             {/* Chat Window */}
-            <ChatPage open={open} setOpen={setOpen} messages={messages} onSend={handleSend} />
+            <ChatPage open={open} setOpen={setOpen} messages={messages} onSend={handleSend} socketStatus={socketStatus} />
 
             {/* Floating Button */}
             <Button
