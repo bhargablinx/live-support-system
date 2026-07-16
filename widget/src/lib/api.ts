@@ -2,7 +2,7 @@ import api from "./axios";
 
 const createVisitor = async (organizationId: string) => {
     try {
-        const response = await api.post(`/visitor`, {
+        const response = await api.post(`visitor`, {
             organizationId
         });
 
@@ -18,7 +18,7 @@ const createVisitor = async (organizationId: string) => {
 
 const createConversation = async (organizationId: string, visitorToken: string) => {
     try {
-        const response = await api.post(`/conversation`, {
+        const response = await api.post(`conversation`, {
             organizationId,
             visitorToken
         });

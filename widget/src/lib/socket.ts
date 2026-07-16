@@ -6,7 +6,9 @@ let socket: Socket | null = null
 export const getSocket = (visitorToken: string): Socket => {
     if (socket) return socket;
 
-    socket = io(import.meta.env.VITE_API_BASE_URL, {
+    const socketUrl = import.meta.env.VITE_API_BASE_URL.replace(/\/api\/v1\/?$/, "");
+
+    socket = io(socketUrl, {
         auth: { visitorToken },
         autoConnect: true,
         reconnection: true,
