@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Eye, EyeOff, Headset } from "lucide-react";
+import { AlertCircle, Eye, EyeOff, Headset } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,10 +18,13 @@ import {
 import { useForm, SubmitHandler } from "react-hook-form";
 import { handleLogin } from "@/lib/api/auth";
 import type { LoginRequest, ApiResponse, AuthResponseData, ApiError } from "@/lib/types";
+import axios from "axios";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const { register, handleSubmit } = useForm<LoginRequest>();
 
     const onSubmit: SubmitHandler<LoginRequest> = async (data) => {
@@ -31,7 +34,12 @@ export default function LoginPage() {
             const response: ApiResponse<AuthResponseData> = await handleLogin(data);
             console.log(response.data);
         } catch (error) {
-            console.log(error);
+            if (axios.isAxiosError(error)) {
+                const apiError = error.response?.data as ApiError;
+                setErrorMessage(apiError?.message ?? "Something went wrong");
+            } else {
+                setErrorMessage("Network error. Please try again.");
+            }
         } finally {
             setLoading(false);
         }
@@ -125,6 +133,18 @@ export default function LoginPage() {
                                 Forgot password?
                             </Link>
                         </div>
+
+                        {errorMessage && (
+                            <Alert
+                                variant="destructive"
+                                className="animate-in fade-in slide-in-from-top-2 duration-300"
+                            >
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertDescription className="font-medium">
+                                    {errorMessage}
+                                </AlertDescription>
+                            </Alert>
+                        )}
 
                         <Button
                             className="w-full"
