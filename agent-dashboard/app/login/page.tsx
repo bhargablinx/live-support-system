@@ -17,22 +17,18 @@ import {
 } from "@/components/ui/card";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { handleLogin } from "@/lib/api/auth";
-
-interface Inputs {
-    email: string;
-    password: string;
-}
+import { LoginRequest } from "@/lib/types";
 
 export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
-    const { register, handleSubmit } = useForm<Inputs>();
+    const { register, handleSubmit } = useForm<LoginRequest>();
 
-    const onSubmit: SubmitHandler<Inputs> = async (data) => {
+    const onSubmit: SubmitHandler<LoginRequest> = async (data) => {
 
         setLoading(true);
         try {
-            const response = await handleLogin(data.email, data.password);
+            const response = await handleLogin(data);
             console.log(response.data);
         } catch (error) {
             console.log(error);
