@@ -16,6 +16,7 @@ import {
     CardTitle,
 } from "@/components/ui/card";
 import { useForm, SubmitHandler } from "react-hook-form";
+import { handleLogin } from "@/lib/api/auth";
 
 interface Inputs {
     email: string;
@@ -30,14 +31,14 @@ export default function LoginPage() {
     const onSubmit: SubmitHandler<Inputs> = async (data) => {
 
         setLoading(true);
-
-        // TODO:
-        // Call your login API
-        console.log(data);
-
-        setTimeout(() => {
+        try {
+            const response = await handleLogin(data.email, data.password);
+            console.log(response.data);
+        } catch (error) {
+            console.log(error);
+        } finally {
             setLoading(false);
-        }, 1500);
+        }
     }
 
     return (
