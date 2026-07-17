@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/card";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { handleLogin } from "@/lib/api/auth";
-import { LoginRequest } from "@/lib/types";
+import type { LoginRequest, ApiResponse, AuthResponseData, ApiError } from "@/lib/types";
 
 export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
@@ -28,7 +28,7 @@ export default function LoginPage() {
 
         setLoading(true);
         try {
-            const response = await handleLogin(data);
+            const response: ApiResponse<AuthResponseData> = await handleLogin(data);
             console.log(response.data);
         } catch (error) {
             console.log(error);
