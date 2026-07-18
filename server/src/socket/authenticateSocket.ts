@@ -3,7 +3,20 @@ import { verifyAccessToken } from "../utils/verifyToken.js";
 import prisma from "../utils/prisma.js";
 
 export async function authenticateSocket(socket: Socket, next: (error?: Error) => void) {
-    const { token, visitorToken } = socket.handshake.auth;
+    let token = socket.handshake.auth.token;
+    const { visitorToken } = socket.handshake.auth;
+
+    // Fallback to cookie extraction
+    if (!token && socket.handshake.headers.cookie) {
+        const cookies = socket.handshake.headers.cookie.split(";").reduce((acc, cookie) => {
+            const [key, val] = cookie.trim().split("=");
+            if (key && val) {
+                acc[key] = val;
+            }
+            return acc;
+        }, {} as Record<string, string>);
+        token = cookies["accessToken"];
+    }
 
     if (token) {
 
