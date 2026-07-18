@@ -8,6 +8,12 @@ export function registerSocketHandlers(io: Server) {
     io.on("connection", (socket: Socket) => {
         console.log(`Socket connected: ${socket.id} (${socket.data.type})`);
 
+        // Join organization room to receive broadcasts
+        if (socket.data.organizationId) {
+            socket.join(`org_${socket.data.organizationId}`);
+            console.log(`Joined organization room: org_${socket.data.organizationId}`);
+        }
+
         socket.on("join_room", ({ conversationId }: { conversationId: string }) => {
             socket.join(conversationId)
             console.log(`User joined room: ${conversationId}`)
@@ -17,12 +23,28 @@ export function registerSocketHandlers(io: Server) {
         socket.on("send_message", async ({ conversationId, content }) => {
             const senderType = socket.data.type === "agent" ? "AGENT" : "VISITOR";
 
-            const message = await prisma.message.create({
-                data: { conversationId, content, senderType },
-            });
+            // Create message and update conversation timestamp
+            const [message] = await prisma.$transaction([
+                prisma.message.create({
+                    data: { conversationId, content, senderType },
+                }),
+                prisma.conversation.update({
+                    where: { id: conversationId },
+                    data: { updatedAt: new Date() }
+                })
+            ]);
 
+            // Broadcast to the conversation room
             socket.to(conversationId).emit('receive_message', message);
             socket.emit('receive_message', message);
+
+            // Broadcast to organization room so agents see new messages / conversation list updates
+            if (socket.data.organizationId) {
+                io.to(`org_${socket.data.organizationId}`).emit("org_message", {
+                    conversationId,
+                    message
+                });
+            }
         })
 
         // presence cleanup comes here (Redis implementation)
