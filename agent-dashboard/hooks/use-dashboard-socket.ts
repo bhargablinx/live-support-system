@@ -81,6 +81,20 @@ export function useDashboardSocket({
             );
         });
 
+        // Listen for archived chats
+        socket.on("conversation_archived", (updatedConvo: Conversation) => {
+            setConversations((prev) =>
+                prev.map((c) => (c.id === updatedConvo.id ? { ...c, ...updatedConvo } : c))
+            );
+        });
+
+        // Listen for reopened chats
+        socket.on("conversation_reopened", (updatedConvo: Conversation) => {
+            setConversations((prev) =>
+                prev.map((c) => (c.id === updatedConvo.id ? { ...c, ...updatedConvo } : c))
+            );
+        });
+
         // Listen for disconnect
         socket.on("disconnect", () => {
             console.log("Socket disconnected");

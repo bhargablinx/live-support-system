@@ -4,14 +4,16 @@ import React, { useState, useMemo } from "react";
 import { Conversation } from "@/lib/types";
 import { mockVisitorDetails, VisitorDetail } from "@/lib/mock";
 import { Button } from "@/components/ui/button";
-import { MapPin, Globe, Laptop, Clock, StickyNote, CheckCircle, RefreshCcw, User } from "lucide-react";
+import { MapPin, Globe, Laptop, Clock, StickyNote, CheckCircle, RefreshCcw, User, Archive } from "lucide-react";
 
 interface CustomerDetailsProps {
     conversation: Conversation | null;
     onResolve: () => void;
+    onArchive: () => void;
+    onReopen: () => void;
 }
 
-export function CustomerDetails({ conversation, onResolve }: CustomerDetailsProps) {
+export function CustomerDetails({ conversation, onResolve, onArchive, onReopen }: CustomerDetailsProps) {
     // Load visitor detail
     const dbVisitor = conversation?.visitor;
     const mockVisitor = conversation ? mockVisitorDetails[conversation.visitorId] : undefined;
@@ -160,7 +162,18 @@ export function CustomerDetails({ conversation, onResolve }: CustomerDetailsProp
             </div>
 
             {/* Bottom Actions Area */}
-            {!isResolved && (
+            {isResolved ? (
+                <div className="p-4 border-t border-border bg-card/20 space-y-2">
+                    <Button
+                        variant="default"
+                        className="w-full justify-center gap-2 bg-blue-600 text-white hover:bg-blue-500 font-semibold text-xs h-10 rounded-lg shadow-sm"
+                        onClick={onReopen}
+                    >
+                        <RefreshCcw className="h-4 w-4" />
+                        Reopen Conversation
+                    </Button>
+                </div>
+            ) : (
                 <div className="p-4 border-t border-border bg-card/20 space-y-2">
                     <Button
                         variant="default"
@@ -169,6 +182,14 @@ export function CustomerDetails({ conversation, onResolve }: CustomerDetailsProp
                     >
                         <CheckCircle className="h-4 w-4" />
                         Resolve Conversation
+                    </Button>
+                    <Button
+                        variant="outline"
+                        className="w-full justify-center gap-2 bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs h-10 rounded-lg shadow-sm border-transparent"
+                        onClick={onArchive}
+                    >
+                        <Archive className="h-4 w-4" />
+                        Archive Conversation
                     </Button>
                     <Button
                         variant="outline"

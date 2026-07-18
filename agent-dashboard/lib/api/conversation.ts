@@ -36,3 +36,21 @@ export const fetchMessages = async (id: string): Promise<ApiResponse<Message[]>>
         throw error;
     }
 };
+
+export const archiveConversation = async (id: string): Promise<ApiResponse<Conversation>> => {
+    try {
+        const response = await api.post(`/conversation/${id}/archive`);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const reopenConversation = async (id: string): Promise<ApiResponse<Conversation>> => {
+    try {
+        const response = await api.post(`/conversation/${id}/reopen`);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};

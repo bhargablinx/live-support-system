@@ -12,6 +12,8 @@ import {
     fetchConversations,
     claimConversation,
     resolveConversation,
+    archiveConversation,
+    reopenConversation,
 } from "@/lib/api/conversation";
 
 export default function DashboardPage() {
@@ -97,6 +99,38 @@ export default function DashboardPage() {
         }
     };
 
+    // Archive conversation action
+    const handleArchive = async () => {
+        if (!selectedId) return;
+        try {
+            const res = await archiveConversation(selectedId);
+            if (res.statusCode === 200 && res.data) {
+                // Sync state locally
+                setConversations((prev) =>
+                    prev.map((c) => (c.id === selectedId ? { ...c, ...res.data } : c))
+                );
+            }
+        } catch (error) {
+            console.error("Failed to archive conversation:", error);
+        }
+    };
+
+    // Reopen conversation action
+    const handleReopen = async () => {
+        if (!selectedId) return;
+        try {
+            const res = await reopenConversation(selectedId);
+            if (res.statusCode === 200 && res.data) {
+                // Sync state locally
+                setConversations((prev) =>
+                    prev.map((c) => (c.id === selectedId ? { ...c, ...res.data } : c))
+                );
+            }
+        } catch (error) {
+            console.error("Failed to reopen conversation:", error);
+        }
+    };
+
     return (
         <main className="flex h-screen w-screen overflow-hidden">
             {/* Narrow Left Sidebar */}
@@ -127,6 +161,8 @@ export default function DashboardPage() {
                 <CustomerDetails
                     conversation={activeConversation}
                     onResolve={handleResolve}
+                    onArchive={handleArchive}
+                    onReopen={handleReopen}
                 />
             </div>
         </main>
