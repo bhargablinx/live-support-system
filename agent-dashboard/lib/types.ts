@@ -127,6 +127,6 @@ export type ReceiveMessagePayload = Message;
 // UI State Types
 export interface AuthState {
     user: User | null;
-    organization: Organization | null;
+    organization: Pick<Organization, "id" | "name"> | null;
     isAuthenticated: boolean;
 }
