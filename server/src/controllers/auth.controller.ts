@@ -214,5 +214,49 @@ const refreshAccessToken = asyncHandler(async (req: Request, res: Response) => {
 })
 
 // Get Me
+const getMe = asyncHandler(async (req: Request, res: Response) => {
+    const user = req.user;
 
-export { register, login, logout, refreshAccessToken }
+    if (!user) {
+        throw new ApiError({
+            statusCode: 401,
+            message: "Unauthorized",
+            error: "Unauthorized",
+        });
+    }
+
+    const organization = await prisma.organization.findUnique({
+        where: {
+            id: user.organizationId
+        }
+    });
+
+    if (!organization) {
+        throw new ApiError({
+            statusCode: 404,
+            message: "Organization not found",
+            error: "Not Found",
+        });
+    }
+
+    return res.status(200).json(
+        new ApiResponse({
+            statusCode: 200,
+            message: "User session retrieved successfully",
+            data: {
+                organization: {
+                    id: organization.id,
+                    name: organization.name,
+                },
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    role: user.role,
+                    createdAt: user.createdAt
+                },
+            }
+        })
+    );
+});
+
+export { register, login, logout, refreshAccessToken, getMe }
