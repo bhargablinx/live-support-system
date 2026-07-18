@@ -2,8 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAppDispatch, useAppSelector } from "@/lib/store/store";
-import { checkAuth } from "@/lib/store/auth-slice";
+import { useAppSelector } from "@/lib/store/store";
 import { Loader2 } from "lucide-react";
 
 export default function DashboardLayout({
@@ -11,13 +10,8 @@ export default function DashboardLayout({
 }: {
     children: React.ReactNode;
 }) {
-    const dispatch = useAppDispatch();
     const router = useRouter();
     const { isAuthenticated, loading } = useAppSelector((state) => state.auth);
-
-    useEffect(() => {
-        dispatch(checkAuth());
-    }, [dispatch]);
 
     useEffect(() => {
         if (!loading && !isAuthenticated) {
