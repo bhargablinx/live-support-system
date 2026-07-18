@@ -15,35 +15,37 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
+
 import { useForm, SubmitHandler } from "react-hook-form";
-import { handleLogin } from "@/lib/api/auth";
-import type { LoginRequest, ApiResponse, AuthResponseData, ApiError } from "@/lib/types";
-import axios from "axios";
+import type { LoginRequest } from "@/lib/types";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAppDispatch, useAppSelector } from "@/lib/store/store";
+import { loginUser, clearError } from "@/lib/store/auth-slice";
 
 export default function LoginPage() {
+    const dispatch = useAppDispatch();
+    const router = useRouter();
+    const { isAuthenticated, loading, error } = useAppSelector((state) => state.auth);
     const [showPassword, setShowPassword] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const { register, handleSubmit } = useForm<LoginRequest>();
 
-    const onSubmit: SubmitHandler<LoginRequest> = async (data) => {
+    useEffect(() => {
+        // Clear any leftover errors when component mounts
+        dispatch(clearError());
+    }, [dispatch]);
 
-        setLoading(true);
-        try {
-            const response: ApiResponse<AuthResponseData> = await handleLogin(data);
-            console.log(response.data);
-        } catch (error) {
-            if (axios.isAxiosError(error)) {
-                const apiError = error.response?.data as ApiError;
-                setErrorMessage(apiError?.message ?? "Something went wrong");
-            } else {
-                setErrorMessage("Network error. Please try again.");
-            }
-        } finally {
-            setLoading(false);
+    useEffect(() => {
+        if (isAuthenticated) {
+            router.push("/dashboard");
         }
+    }, [isAuthenticated, router]);
+
+    const onSubmit: SubmitHandler<LoginRequest> = async (data) => {
+        dispatch(loginUser(data));
     }
+
 
     return (
         <main className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
@@ -134,14 +136,14 @@ export default function LoginPage() {
                             </Link>
                         </div>
 
-                        {errorMessage && (
+                        {error && (
                             <Alert
                                 variant="destructive"
                                 className="animate-in fade-in slide-in-from-top-2 duration-300"
                             >
                                 <AlertCircle className="h-4 w-4" />
                                 <AlertDescription className="font-medium">
-                                    {errorMessage}
+                                    {error}
                                 </AlertDescription>
                             </Alert>
                         )}

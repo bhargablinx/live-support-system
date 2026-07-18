@@ -21,29 +21,32 @@ import axios from "axios";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ApiError } from "next/dist/server/api-utils";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAppDispatch, useAppSelector } from "@/lib/store/store";
+import { registerUser, clearError } from "@/lib/store/auth-slice";
+
 export default function RegisterPage() {
+    const dispatch = useAppDispatch();
+    const router = useRouter();
+    const { isAuthenticated, loading, error } = useAppSelector((state) => state.auth);
     const [showPassword, setShowPassword] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const { register, handleSubmit } = useForm<RegistrationRequest>();
 
-    const onSubmit: SubmitHandler<RegistrationRequest> = async (data) => {
-        setLoading(true);
+    useEffect(() => {
+        dispatch(clearError());
+    }, [dispatch]);
 
-        try {
-            const response: ApiResponse<AuthResponseData> = await handleRegistration(data)
-            console.log(response.data);
-        } catch (error) {
-            if (axios.isAxiosError(error)) {
-                const apiError = error.response?.data as ApiError;
-                setErrorMessage(apiError?.message ?? "Something went wrong");
-            } else {
-                setErrorMessage("Network error. Please try again.");
-            }
-        } finally {
-            setLoading(false);
+    useEffect(() => {
+        if (isAuthenticated) {
+            router.push("/dashboard");
         }
+    }, [isAuthenticated, router]);
+
+    const onSubmit: SubmitHandler<RegistrationRequest> = async (data) => {
+        dispatch(registerUser(data));
     }
+
 
     return (
         <main className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
@@ -124,14 +127,14 @@ export default function RegisterPage() {
                             </div>
                         </div>
 
-                        {errorMessage && (
+                        {error && (
                             <Alert
                                 variant="destructive"
                                 className="animate-in fade-in slide-in-from-top-2 duration-300"
                             >
                                 <AlertCircle className="h-4 w-4" />
                                 <AlertDescription className="font-medium">
-                                    {errorMessage}
+                                    {error}
                                 </AlertDescription>
                             </Alert>
                         )}
