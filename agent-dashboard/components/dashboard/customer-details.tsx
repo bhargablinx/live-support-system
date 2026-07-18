@@ -24,7 +24,7 @@ export function CustomerDetails({ conversation, onResolve, onArchive, onReopen }
             organizationId: dbVisitor.organizationId,
             token: dbVisitor.token,
             createdAt: dbVisitor.createdAt,
-            name: `Visitor #${dbVisitor.id.slice(-4)}`,
+            name: dbVisitor.name || `Visitor #${dbVisitor.id.slice(-4)}`,
             email: "Not provided",
             location: "Unknown Location",
             currentUrl: "https://acme.com",

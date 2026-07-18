@@ -111,7 +111,10 @@ export function ChatWindow({
         );
     }
 
-    const visitor = mockVisitorDetails[conversation.visitorId];
+    const dbVisitor = conversation.visitor;
+    const mockVisitor = mockVisitorDetails[conversation.visitorId];
+    const visitorName = mockVisitor?.name || dbVisitor?.name || `Visitor #${conversation.visitorId.slice(-4)}`;
+    const avatarChar = visitorName.charAt(0);
 
     return (
         <section className="flex h-full w-full flex-col bg-background border-r border-border relative">
@@ -119,11 +122,11 @@ export function ChatWindow({
             <div className="flex h-16 w-full items-center justify-between border-b border-border bg-card/40 backdrop-blur-md px-6 z-10">
                 <div className="flex items-center gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-sm uppercase">
-                        {visitor?.name ? visitor.name.charAt(0) : "V"}
+                        {avatarChar}
                     </div>
                     <div>
                         <h2 className="text-sm font-bold text-foreground">
-                            {visitor?.name || "Visitor"}
+                            {visitorName}
                         </h2>
                         <div className="flex items-center gap-1.5 mt-0.5">
                             <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
