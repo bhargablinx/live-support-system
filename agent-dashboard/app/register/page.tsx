@@ -14,12 +14,9 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
-import type { RegistrationRequest, ApiResponse, AuthResponseData } from "@/lib/types";
+import type { RegistrationRequest } from "@/lib/types";
 import { useForm, SubmitHandler } from "react-hook-form";
-import { handleRegistration } from "@/lib/api/auth";
-import axios from "axios";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ApiError } from "next/dist/server/api-utils";
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
