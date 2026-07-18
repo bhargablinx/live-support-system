@@ -45,8 +45,8 @@ export function ConversationList({
         if (!searchQuery.trim()) return true;
 
         const visitorDetail = mockVisitorDetails[c.visitorId];
-        const visitorName = visitorDetail?.name?.toLowerCase() || "";
-        const visitorEmail = visitorDetail?.email?.toLowerCase() || "";
+        const visitorName = visitorDetail?.name?.toLowerCase() || (c.visitor ? `visitor #${c.visitorId.slice(-4)}` : "visitor");
+        const visitorEmail = visitorDetail?.email?.toLowerCase() || "not provided";
         const query = searchQuery.toLowerCase();
 
         const matchVisitor = visitorName.includes(query) || visitorEmail.includes(query) || c.visitorId.toLowerCase().includes(query);
@@ -174,10 +174,10 @@ export function ConversationList({
                                                     : "bg-primary/10 text-primary"
                                             )}
                                         >
-                                            {visitor?.name ? visitor.name.charAt(0) : <User className="h-4 w-4" />}
+                                            {visitor?.name ? visitor.name.charAt(0) : (c.visitor ? "#" : <User className="h-4 w-4" />)}
                                         </div>
                                         <span className="font-semibold text-sm truncate max-w-[130px]">
-                                            {visitor?.name || "Visitor"}
+                                            {visitor?.name || (c.visitor ? `Visitor #${c.visitorId.slice(-4)}` : "Visitor")}
                                         </span>
                                     </div>
                                     <span
