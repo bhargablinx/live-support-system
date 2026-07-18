@@ -26,4 +26,22 @@ const handleRegistration = async ({ organizationName, email, password }: Registr
     }
 }
 
-export { handleLogin, handleRegistration }
+const fetchMe = async () => {
+    try {
+        const response = await api.get("/auth/me");
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+}
+
+const handleLogout = async () => {
+    try {
+        const response = await api.post("/auth/logout");
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+}
+
+export { handleLogin, handleRegistration, fetchMe, handleLogout }
