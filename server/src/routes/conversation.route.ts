@@ -4,7 +4,9 @@ import {
     getConversations, 
     claimConversation, 
     resolveConversation, 
-    getMessages 
+    getMessages,
+    archiveConversation,
+    reopenConversation
 } from "../controllers/conversation.controller.js";
 import { verifyJwt } from "../middleware/auth.middleware.js";
 
@@ -14,6 +16,8 @@ router.post("/", createConversation)
 router.get("/", verifyJwt, getConversations)
 router.post("/:id/claim", verifyJwt, claimConversation)
 router.post("/:id/resolve", verifyJwt, resolveConversation)
+router.post("/:id/archive", verifyJwt, archiveConversation)
+router.post("/:id/reopen", verifyJwt, reopenConversation)
 router.get("/:id/messages", verifyJwt, getMessages)
 
 export default router;

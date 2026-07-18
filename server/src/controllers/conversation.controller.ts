@@ -268,4 +268,130 @@ const getMessages = asyncHandler(async (req: Request, res: Response) => {
     );
 });
 
-export { createConversation, getConversations, claimConversation, resolveConversation, getMessages }
+const archiveConversation = asyncHandler(async (req: Request, res: Response) => {
+    const id = req.params.id as string;
+    const user = req.user;
+    if (!user) {
+        throw new ApiError({
+            statusCode: 401,
+            message: "Unauthorized",
+            error: "Unauthorized",
+        });
+    }
+
+    const conversation = await prisma.conversation.findFirst({
+        where: {
+            id,
+            organizationId: user.organizationId
+        }
+    });
+
+    if (!conversation) {
+        throw new ApiError({
+            statusCode: 404,
+            message: "Conversation not found",
+            error: "Not Found",
+        });
+    }
+
+    const updated = await prisma.conversation.update({
+        where: { id },
+        data: {
+            status: "ARCHIVED"
+        },
+        include: {
+            visitor: true,
+            assignedUser: {
+                select: {
+                    id: true,
+                    email: true,
+                    role: true,
+                    createdAt: true
+                }
+            }
+        }
+    });
+
+    const io = req.app.get("io");
+    if (io) {
+        io.to(`org_${user.organizationId}`).emit("conversation_archived", updated);
+        io.to(id).emit("conversation_archived", updated);
+    }
+
+    return res.status(200).json(
+        new ApiResponse({
+            statusCode: 200,
+            message: "Conversation archived successfully",
+            data: updated
+        })
+    );
+});
+
+const reopenConversation = asyncHandler(async (req: Request, res: Response) => {
+    const id = req.params.id as string;
+    const user = req.user;
+    if (!user) {
+        throw new ApiError({
+            statusCode: 401,
+            message: "Unauthorized",
+            error: "Unauthorized",
+        });
+    }
+
+    const conversation = await prisma.conversation.findFirst({
+        where: {
+            id,
+            organizationId: user.organizationId
+        }
+    });
+
+    if (!conversation) {
+        throw new ApiError({
+            statusCode: 404,
+            message: "Conversation not found",
+            error: "Not Found",
+        });
+    }
+
+    const updated = await prisma.conversation.update({
+        where: { id },
+        data: {
+            status: conversation.assignedUserId ? "CLAIMED" : "UNASSIGNED"
+        },
+        include: {
+            visitor: true,
+            assignedUser: {
+                select: {
+                    id: true,
+                    email: true,
+                    role: true,
+                    createdAt: true
+                }
+            }
+        }
+    });
+
+    const io = req.app.get("io");
+    if (io) {
+        io.to(`org_${user.organizationId}`).emit("conversation_reopened", updated);
+        io.to(id).emit("conversation_reopened", updated);
+    }
+
+    return res.status(200).json(
+        new ApiResponse({
+            statusCode: 200,
+            message: "Conversation reopened successfully",
+            data: updated
+        })
+    );
+});
+
+export { 
+    createConversation, 
+    getConversations, 
+    claimConversation, 
+    resolveConversation, 
+    getMessages, 
+    archiveConversation, 
+    reopenConversation 
+}
