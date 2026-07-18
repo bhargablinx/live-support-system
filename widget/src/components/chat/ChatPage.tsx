@@ -16,6 +16,7 @@ interface ChatPageProps {
     messages: Message[];
     onSend: (message: string) => void;
     socketStatus: SocketStatus;
+    isResolved?: boolean;
 }
 
 const statusConfig: Record<SocketStatus, { label: string; color: string; pulse: boolean }> = {
@@ -24,7 +25,7 @@ const statusConfig: Record<SocketStatus, { label: string; color: string; pulse: 
     disconnected: { label: "Disconnected", color: "bg-red-500", pulse: false },
 };
 
-export default function ChatPage({ open, setOpen, messages, onSend, socketStatus }: ChatPageProps) {
+export default function ChatPage({ open, setOpen, messages, onSend, socketStatus, isResolved = false }: ChatPageProps) {
     const hasOpenedRef = useRef(false);
     const { organizationId } = useSelector((state: RootState) => state.auth);
     const dispatch = useDispatch();
@@ -89,17 +90,28 @@ export default function ChatPage({ open, setOpen, messages, onSend, socketStatus
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4">
-                {messages.map((message) => (
-                    <ChatBubble
-                        key={message.id}
-                        message={message.content}
-                        isOwn={message.senderType === "VISITOR"}
-                    />
-                ))}
+                {messages.map((message) => {
+                    if (message.senderType === "SYSTEM") {
+                        return (
+                            <div key={message.id} className="mb-4 flex justify-center animate-in fade-in duration-300">
+                                <div className="rounded-full bg-muted/80 px-3 py-1 text-[11px] font-medium text-muted-foreground border shadow-sm">
+                                    {message.content}
+                                </div>
+                            </div>
+                        );
+                    }
+                    return (
+                        <ChatBubble
+                            key={message.id}
+                            message={message.content}
+                            isOwn={message.senderType === "VISITOR"}
+                        />
+                    );
+                })}
             </div>
 
             {/* Input */}
-            <ChatInput onSend={handleSend} />
+            <ChatInput onSend={handleSend} disabled={isResolved} />
         </div>
     );
 }

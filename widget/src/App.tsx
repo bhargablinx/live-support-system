@@ -16,6 +16,7 @@ export default function App() {
     const dispatch = useDispatch();
     const { organizationId, visitorToken } = useSelector((state: RootState) => state.auth);
     const [conversationId, setConversationId] = useState<string | null>(() => getFromLocal("conversationId"));
+    const [isResolved, setIsResolved] = useState(false);
     const [socketStatus, setSocketStatus] = useState<SocketStatus>(() => {
         if (!visitorToken) return "disconnected";
         const socket = getSocket(visitorToken);
@@ -67,7 +68,66 @@ export default function App() {
             });
         };
 
+        const handleResolved = (convo) => {
+            if (convo.id === conversationId) {
+                setIsResolved(true);
+                setMessages((prev) => {
+                    const systemMsgId = `resolved-${Date.now()}`;
+                    if (prev.some((m) => String(m.id).startsWith("resolved-"))) return prev;
+                    return [
+                        ...prev,
+                        {
+                            id: systemMsgId,
+                            conversationId: convo.id,
+                            content: "🔒 This conversation has been resolved by the agent.",
+                            senderType: "SYSTEM",
+                            createdAt: new Date().toISOString()
+                        }
+                    ];
+                });
+            }
+        };
+
+        const handleArchived = (convo) => {
+            if (convo.id === conversationId) {
+                setIsResolved(true);
+                setMessages((prev) => {
+                    const systemMsgId = `archived-${Date.now()}`;
+                    if (prev.some((m) => String(m.id).startsWith("archived-"))) return prev;
+                    return [
+                        ...prev,
+                        {
+                            id: systemMsgId,
+                            conversationId: convo.id,
+                            content: "🔒 This conversation has been archived due to inactivity.",
+                            senderType: "SYSTEM",
+                            createdAt: new Date().toISOString()
+                        }
+                    ];
+                });
+            }
+        };
+
+        const handleReopened = (convo) => {
+            if (convo.id === conversationId) {
+                setIsResolved(false);
+                setMessages((prev) => [
+                    ...prev,
+                    {
+                        id: `reopened-${Date.now()}`,
+                        conversationId: convo.id,
+                        content: "🔓 This conversation has been reopened by the agent.",
+                        senderType: "SYSTEM",
+                        createdAt: new Date().toISOString()
+                    }
+                ]);
+            }
+        };
+
         socket.on("receive_message", handleReceiveMessage);
+        socket.on("conversation_resolved", handleResolved);
+        socket.on("conversation_archived", handleArchived);
+        socket.on("conversation_reopened", handleReopened);
 
         return () => {
             socket.off("connect", handleConnect);
@@ -75,6 +135,9 @@ export default function App() {
             socket.off("reconnect_attempt", handleConnecting);
             socket.off("connect_error", handleDisconnect);
             socket.off("receive_message", handleReceiveMessage);
+            socket.off("conversation_resolved", handleResolved);
+            socket.off("conversation_archived", handleArchived);
+            socket.off("conversation_reopened", handleReopened);
         };
     }, [visitorToken, conversationId]);
 
@@ -121,7 +184,7 @@ export default function App() {
             </div>
 
             {/* Chat Window */}
-            <ChatPage open={open} setOpen={setOpen} messages={messages} onSend={handleSend} socketStatus={socketStatus} />
+            <ChatPage open={open} setOpen={setOpen} messages={messages} onSend={handleSend} socketStatus={socketStatus} isResolved={isResolved} />
 
             {/* Floating Button */}
             <Button

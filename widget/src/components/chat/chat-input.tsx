@@ -8,15 +8,16 @@ import { Textarea } from "@/components/ui/textarea";
 interface ChatInputProps {
     onSend: (message: string) => void;
     isLoading?: boolean;
+    disabled?: boolean;
 }
 
-export function ChatInput({ onSend, isLoading = false }: ChatInputProps) {
+export function ChatInput({ onSend, isLoading = false, disabled = false }: ChatInputProps) {
     const [message, setMessage] = useState("");
 
     const handleSend = () => {
         const trimmed = message.trim();
 
-        if (!trimmed || isLoading) return;
+        if (!trimmed || isLoading || disabled) return;
 
         onSend(trimmed);
         setMessage("");
@@ -36,15 +37,16 @@ export function ChatInput({ onSend, isLoading = false }: ChatInputProps) {
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Type your message..."
+                    disabled={disabled}
+                    placeholder={disabled ? "This conversation has been resolved." : "Type your message..."}
                     rows={1}
-                    className="max-h-40 min-h-[44px] resize-none border-0 bg-transparent p-1 shadow-none focus-visible:ring-0"
+                    className="max-h-40 min-h-[44px] resize-none border-0 bg-transparent p-1 shadow-none focus-visible:ring-0 disabled:opacity-50"
                 />
 
                 <Button
                     size="icon"
                     onClick={handleSend}
-                    disabled={!message.trim() || isLoading}
+                    disabled={!message.trim() || isLoading || disabled}
                     className="h-11 w-11 rounded-full"
                 >
                     <SendHorizontal className="h-5 w-5" />
