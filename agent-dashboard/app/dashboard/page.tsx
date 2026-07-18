@@ -7,7 +7,7 @@ import { ConversationList } from "@/components/dashboard/conversation-list";
 import { ChatWindow } from "@/components/dashboard/chat-window";
 import { CustomerDetails } from "@/components/dashboard/customer-details";
 import { Conversation, Message } from "@/lib/types";
-import { io, Socket } from "socket.io-client";
+import { useDashboardSocket } from "@/hooks/use-dashboard-socket";
 import {
     fetchConversations,
     claimConversation,
@@ -19,7 +19,6 @@ export default function DashboardPage() {
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [messages, setMessages] = useState<Record<string, Message[]>>({});
     const [selectedId, setSelectedId] = useState<string | null>(null);
-    const socketRef = useRef<Socket | null>(null);
 
     // Store latest conversations in a ref to avoid stale closures in socket event handlers
     const conversationsRef = useRef<Conversation[]>([]);
@@ -57,82 +56,14 @@ export default function DashboardPage() {
         }
     }, [user]);
 
-    // Setup Socket.io real-time connection
-    useEffect(() => {
-        if (!user) return;
-
-        // Connect directly to the backend socket server
-        const socket = io("http://localhost:8000", {
-            withCredentials: true,
-            transports: ["websocket", "polling"],
-        });
-
-        socketRef.current = socket;
-
-        socket.on("connect", () => {
-            console.log("Socket connected to server:", socket.id);
-        });
-
-        // Listen for new messages / org updates
-        socket.on("org_message", ({ conversationId, message }: { conversationId: string; message: Message }) => {
-            // Append message to state map
-            setMessages((prev) => {
-                const list = prev[conversationId] || [];
-                if (list.some((m) => m.id === message.id)) return prev;
-                return {
-                    ...prev,
-                    [conversationId]: [...list, message],
-                };
-            });
-
-            // Update conversation updatedAt / last message in list
-            if (!conversationsRef.current.some((c) => c.id === conversationId)) {
-                // If conversation doesn't exist, fetch latest list (safe here since it's an async event callback, not in the render path)
-                loadConversations();
-            } else {
-                setConversations((prev) =>
-                    prev.map((c) =>
-                        c.id === conversationId
-                            ? {
-                                ...c,
-                                updatedAt: message.createdAt,
-                            }
-                            : c
-                    ).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-                );
-            }
-        });
-
-        // Listen for other agents claiming chats
-        socket.on("conversation_claimed", (updatedConvo: Conversation) => {
-            setConversations((prev) =>
-                prev.map((c) => (c.id === updatedConvo.id ? { ...c, ...updatedConvo } : c))
-            );
-        });
-
-        // Listen for resolved chats
-        socket.on("conversation_resolved", (updatedConvo: Conversation) => {
-            setConversations((prev) =>
-                prev.map((c) => (c.id === updatedConvo.id ? { ...c, ...updatedConvo } : c))
-            );
-        });
-
-        socket.on("disconnect", () => {
-            console.log("Socket disconnected");
-        });
-
-        return () => {
-            socket.disconnect();
-            socketRef.current = null;
-        };
-    }, [user]);
-
-    // Handle joining chat rooms when selecting chats
-    useEffect(() => {
-        if (socketRef.current && selectedId) {
-            socketRef.current.emit("join_room", { conversationId: selectedId });
-        }
-    }, [selectedId]);
+    // Setup Socket.io real-time connection and event listeners
+    const { sendMessage } = useDashboardSocket({
+        conversationsRef,
+        setConversations,
+        setMessages,
+        loadConversations,
+        selectedId,
+    });
 
     // Claim conversation action
     const handleClaim = async () => {
@@ -166,17 +97,6 @@ export default function DashboardPage() {
         }
     };
 
-    // Send a message via Socket.io
-    const handleSendMessage = (content: string) => {
-        if (!selectedId || !socketRef.current) return;
-
-        // Emit the message via socket
-        socketRef.current.emit("send_message", {
-            conversationId: selectedId,
-            content,
-        });
-    };
-
     return (
         <main className="flex h-screen w-screen overflow-hidden">
             {/* Narrow Left Sidebar */}
@@ -197,7 +117,7 @@ export default function DashboardPage() {
                 <ChatWindow
                     conversation={activeConversation}
                     messages={activeMessages}
-                    onSendMessage={handleSendMessage}
+                    onSendMessage={sendMessage}
                     onClaim={handleClaim}
                 />
             </div>
