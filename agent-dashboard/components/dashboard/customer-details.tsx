@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { Conversation } from "@/lib/types";
 import { mockVisitorDetails, VisitorDetail } from "@/lib/mock";
 import { Button } from "@/components/ui/button";
-import { MapPin, Globe, Laptop, Clock, StickyNote, AlertTriangle, CheckCircle, RefreshCcw, User } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { MapPin, Globe, Laptop, Clock, StickyNote, CheckCircle, RefreshCcw, User } from "lucide-react";
 
 interface CustomerDetailsProps {
     conversation: Conversation | null;
@@ -13,27 +12,43 @@ interface CustomerDetailsProps {
 }
 
 export function CustomerDetails({ conversation, onResolve }: CustomerDetailsProps) {
-    const [notes, setNotes] = useState("");
-    const [savedNotes, setSavedNotes] = useState("");
-
     // Load visitor detail
-    const visitor: VisitorDetail | undefined = conversation
-        ? mockVisitorDetails[conversation.visitorId]
-        : undefined;
+    const dbVisitor = conversation?.visitor;
+    const mockVisitor = conversation ? mockVisitorDetails[conversation.visitorId] : undefined;
 
-    useEffect(() => {
-        if (visitor) {
-            setNotes(visitor.notes || "");
-            setSavedNotes(visitor.notes || "");
-        } else {
-            setNotes("");
-            setSavedNotes("");
-        }
-    }, [visitor, conversation]);
+    const visitor: VisitorDetail | undefined = useMemo(() => {
+        return mockVisitor || (dbVisitor ? {
+            id: dbVisitor.id,
+            organizationId: dbVisitor.organizationId,
+            token: dbVisitor.token,
+            createdAt: dbVisitor.createdAt,
+            name: `Visitor #${dbVisitor.id.slice(-4)}`,
+            email: "Not provided",
+            location: "Unknown Location",
+            currentUrl: "https://acme.com",
+            browser: "Web Browser",
+            os: "Visitor Device",
+            notes: ""
+        } : undefined);
+    }, [mockVisitor, dbVisitor]);
+
+    const [notes, setNotes] = useState(() => visitor?.notes || "");
+    const [savedNotes, setSavedNotes] = useState(() => visitor?.notes || "");
+    const [prevVisitorId, setPrevVisitorId] = useState<string | null>(() => visitor?.id || null);
+
+    // Adjust state during render when visitor changes (avoiding useEffect cascading renders)
+    if ((visitor?.id || null) !== prevVisitorId) {
+        setPrevVisitorId(visitor?.id || null);
+        setNotes(visitor?.notes || "");
+        setSavedNotes(visitor?.notes || "");
+    }
 
     const handleSaveNotes = () => {
         if (!visitor) return;
-        visitor.notes = notes; // update mock state reference directly
+        // Update mock state reference directly in the global cache to avoid mutating hook-derived objects
+        if (conversation && mockVisitorDetails[conversation.visitorId]) {
+            mockVisitorDetails[conversation.visitorId].notes = notes;
+        }
         setSavedNotes(notes);
     };
 
