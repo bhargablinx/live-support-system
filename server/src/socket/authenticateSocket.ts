@@ -3,8 +3,19 @@ import { verifyAccessToken } from "../utils/verifyToken.js";
 import prisma from "../utils/prisma.js";
 
 export async function authenticateSocket(socket: Socket, next: (error?: Error) => void) {
-    let token = socket.handshake.auth.token;
     const { visitorToken } = socket.handshake.auth;
+
+    if (visitorToken) {
+        // Visitor connecting
+        const visitor = await prisma.visitor.findUnique({ where: { token: visitorToken } });
+        if (!visitor) return next(new Error('Invalid visitor token'));
+        socket.data.type = 'visitor';
+        socket.data.visitorId = visitor.id;
+        socket.data.organizationId = visitor.organizationId;
+        return next();
+    }
+
+    let token = socket.handshake.auth.token;
 
     // Fallback to cookie extraction
     if (!token && socket.handshake.headers.cookie) {
@@ -19,7 +30,6 @@ export async function authenticateSocket(socket: Socket, next: (error?: Error) =
     }
 
     if (token) {
-
         try {
             const payload = await verifyAccessToken(token);
             socket.data.type = 'agent';
@@ -29,17 +39,6 @@ export async function authenticateSocket(socket: Socket, next: (error?: Error) =
         } catch (error) {
             return next(new Error('Invalid agent token'));
         }
-
-    }
-
-    if (visitorToken) {
-        // Visitor connecting
-        const visitor = await prisma.visitor.findUnique({ where: { token: visitorToken } });
-        if (!visitor) return next(new Error('Invalid visitor token'));
-        socket.data.type = 'visitor';
-        socket.data.visitorId = visitor.id;
-        socket.data.organizationId = visitor.organizationId;
-        return next();
     }
 
     next(new Error('No auth provided'));

@@ -121,7 +121,7 @@ export function CustomerDetails({ conversation, onResolve }: CustomerDetailsProp
                             <Clock className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
                             <div>
                                 <p className="font-semibold text-foreground">First Seen</p>
-                                <p className="text-muted-foreground mt-0.5">
+                                <p suppressHydrationWarning className="text-muted-foreground mt-0.5">
                                     {new Date(visitor.createdAt).toLocaleString([], {
                                         dateStyle: "short",
                                         timeStyle: "short",

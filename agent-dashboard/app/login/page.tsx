@@ -22,7 +22,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/lib/store/store";
-import { loginUser, clearError } from "@/lib/store/auth-slice";
+import { loginUser, clearError, setLoading } from "@/lib/store/auth-slice";
 
 export default function LoginPage() {
     const dispatch = useAppDispatch();
@@ -34,6 +34,7 @@ export default function LoginPage() {
     useEffect(() => {
         // Clear any leftover errors when component mounts
         dispatch(clearError());
+        dispatch(setLoading(false));
     }, [dispatch]);
 
     useEffect(() => {

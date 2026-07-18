@@ -181,6 +181,7 @@ export function ConversationList({
                                         </span>
                                     </div>
                                     <span
+                                        suppressHydrationWarning
                                         className={cn(
                                             "text-[10px]",
                                             isSelected ? "text-primary-foreground/75" : "text-muted-foreground"

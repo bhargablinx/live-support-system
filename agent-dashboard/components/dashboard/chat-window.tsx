@@ -195,7 +195,7 @@ export function ChatWindow({
                                 >
                                     <p className="leading-relaxed break-words">{m.content}</p>
                                 </div>
-                                <span className="text-[9px] text-muted-foreground px-1.5 font-medium">
+                                <span suppressHydrationWarning className="text-[9px] text-muted-foreground px-1.5 font-medium">
                                     {new Date(m.createdAt).toLocaleTimeString([], {
                                         hour: "2-digit",
                                         minute: "2-digit",

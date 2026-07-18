@@ -24,7 +24,7 @@ import { ApiError } from "next/dist/server/api-utils";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/lib/store/store";
-import { registerUser, clearError } from "@/lib/store/auth-slice";
+import { registerUser, clearError, setLoading } from "@/lib/store/auth-slice";
 
 export default function RegisterPage() {
     const dispatch = useAppDispatch();
@@ -35,6 +35,7 @@ export default function RegisterPage() {
 
     useEffect(() => {
         dispatch(clearError());
+        dispatch(setLoading(false));
     }, [dispatch]);
 
     useEffect(() => {
