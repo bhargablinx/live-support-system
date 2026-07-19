@@ -2,10 +2,12 @@ import api from "./axios";
 
 const createVisitor = async (organizationId: string, name: string, email: string) => {
     try {
+        const currentUrl = window.location.href;
         const response = await api.post(`visitor`, {
             organizationId,
             name,
-            email
+            email,
+            currentUrl
         });
 
         if (response.data.success) {
