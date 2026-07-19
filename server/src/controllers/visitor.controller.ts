@@ -3,11 +3,12 @@ import { asyncHandler } from '../utils/helper.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import type { Request, Response } from 'express';
 import prisma from '../utils/prisma.js';
-
+import { UAParser } from 'ua-parser-js';
+import geoip from 'geoip-lite';
 
 const createVisitor = asyncHandler(async (req: Request, res: Response) => {
 
-    const { organizationId, name, email } = req.body;
+    const { organizationId, name, email, currentUrl } = req.body;
 
     if (!organizationId || !name || !email)
         throw new ApiError({
@@ -31,12 +32,28 @@ const createVisitor = asyncHandler(async (req: Request, res: Response) => {
 
     const token = crypto.randomUUID();
 
+    // Parse User-Agent for Browser and OS
+    const userAgent = req.headers['user-agent'] || '';
+    const parser = new UAParser(userAgent);
+    const browser = parser.getBrowser().name || "Unknown Browser";
+    const os = parser.getOS().name || "Unknown OS";
+
+    // Lookup Geolocation by IP
+    const ip = req.ip || req.socket.remoteAddress || '';
+    // During local development, IP will often be ::1 or 127.0.0.1 which resolves to null.
+    const geo = geoip.lookup(ip);
+    const location = geo ? `${geo.city}, ${geo.country}` : "Unknown Location";
+
     const visitor = await prisma.visitor.create({
         data: {
             token,
             organizationId,
             name,
-            email
+            email,
+            currentUrl,
+            browser,
+            os,
+            location
         }
     });
 

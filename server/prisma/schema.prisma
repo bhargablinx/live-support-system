@@ -56,6 +56,10 @@ model Visitor {
   token          String         @unique
   name           String?
   email          String?
+  location       String?
+  currentUrl     String?
+  browser        String?
+  os             String?
   conversations  Conversation[]
   createdAt      DateTime       @default(now())
 

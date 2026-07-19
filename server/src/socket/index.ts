@@ -12,6 +12,11 @@ export function registerSocketHandlers(io: Server) {
         if (socket.data.organizationId) {
             socket.join(`org_${socket.data.organizationId}`);
             console.log(`Joined organization room: org_${socket.data.organizationId}`);
+            
+            // If it's a visitor, announce online presence
+            if (socket.data.type === 'visitor' && socket.data.visitorId) {
+                io.to(`org_${socket.data.organizationId}`).emit("visitor_online", { visitorId: socket.data.visitorId });
+            }
         }
 
         socket.on("join_room", ({ conversationId }: { conversationId: string }) => {
@@ -51,6 +56,11 @@ export function registerSocketHandlers(io: Server) {
 
         socket.on('disconnect', () => {
             console.log(`Socket disconnected: ${socket.id}`);
+            
+            // Announce visitor offline presence
+            if (socket.data.organizationId && socket.data.type === 'visitor' && socket.data.visitorId) {
+                io.to(`org_${socket.data.organizationId}`).emit("visitor_offline", { visitorId: socket.data.visitorId });
+            }
         });
     })
 }
