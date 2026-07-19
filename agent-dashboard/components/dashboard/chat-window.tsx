@@ -9,9 +9,9 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Command, CommandList, CommandItem, CommandEmpty, CommandGroup } from "@/components/ui/command";
-import { Send, Smile, Paperclip, MoreHorizontal, Inbox, UserPlus, Bolt } from "lucide-react";
+import { Send, Smile, Paperclip, MoreHorizontal, Inbox, UserPlus, Bolt, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ChatWindowProps {
@@ -19,6 +19,7 @@ interface ChatWindowProps {
     messages: Message[];
     onSendMessage: (content: string) => void;
     onClaim?: () => void;
+    onDelete?: () => void;
     isOnline?: boolean;
 }
 
@@ -34,6 +35,7 @@ export function ChatWindow({
     messages,
     onSendMessage,
     onClaim,
+    onDelete,
     isOnline = false
 }: ChatWindowProps) {
     const { user } = useAppSelector((state) => state.auth);
@@ -159,16 +161,22 @@ export function ChatWindow({
                         </div>
                     )}
                     <div className="flex items-center gap-1">
-                        <TooltipProvider delay={150}>
-                            <Tooltip>
-                                <TooltipTrigger render={
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
-                                        <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                } />
-                                <TooltipContent>More Options</TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger render={
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            } />
+                            <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuItem
+                                    className="text-red-600 focus:text-red-600 dark:text-red-500 cursor-pointer"
+                                    onClick={onDelete}
+                                >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    <span>Delete Conversation</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </div>
             </div>

@@ -14,6 +14,7 @@ import {
     resolveConversation,
     archiveConversation,
     reopenConversation,
+    deleteConversation,
 } from "@/lib/api/conversation";
 
 export default function DashboardPage() {
@@ -133,6 +134,21 @@ export default function DashboardPage() {
         }
     };
 
+    // Delete conversation action
+    const handleDelete = async () => {
+        if (!selectedId) return;
+        try {
+            const res = await deleteConversation(selectedId);
+            if (res.statusCode === 200) {
+                // Remove from state locally
+                setConversations((prev) => prev.filter((c) => c.id !== selectedId));
+                setSelectedId(null);
+            }
+        } catch (error) {
+            console.error("Failed to delete conversation:", error);
+        }
+    };
+
     return (
         <main className="flex h-screen w-screen overflow-hidden">
             {/* Narrow Left Sidebar */}
@@ -155,6 +171,7 @@ export default function DashboardPage() {
                     messages={activeMessages}
                     onSendMessage={sendMessage}
                     onClaim={handleClaim}
+                    onDelete={handleDelete}
                     isOnline={activeConversation ? onlineVisitors.includes(activeConversation.visitorId) : false}
                 />
             </div>

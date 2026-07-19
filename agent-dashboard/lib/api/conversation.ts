@@ -54,3 +54,12 @@ export const reopenConversation = async (id: string): Promise<ApiResponse<Conver
         throw error;
     }
 };
+
+export const deleteConversation = async (id: string): Promise<ApiResponse<{ id: string }>> => {
+    try {
+        const response = await api.delete(`/conversation/${id}`);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};

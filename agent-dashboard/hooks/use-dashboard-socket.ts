@@ -97,6 +97,11 @@ export function useDashboardSocket({
             );
         });
 
+        // Listen for deleted chats
+        socket.on("conversation_deleted", ({ id }: { id: string }) => {
+            setConversations((prev) => prev.filter((c) => c.id !== id));
+        });
+
         // Listen for presence
         socket.on("visitor_online", ({ visitorId }: { visitorId: string }) => {
             setOnlineVisitors((prev) => (prev.includes(visitorId) ? prev : [...prev, visitorId]));
