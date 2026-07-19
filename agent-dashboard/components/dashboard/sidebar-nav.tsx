@@ -7,6 +7,7 @@ import {
     MessageSquare,
     Settings,
     Shield,
+    User2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,27 +21,45 @@ import { cn } from "@/lib/utils";
 import { useAppDispatch, useAppSelector } from "@/lib/store/store";
 import { logoutUser } from "@/lib/store/auth-slice";
 
-const navigation = [
-    {
-        icon: MessageSquare,
-        label: "Inbox",
-        active: true,
-    },
-    {
-        icon: BarChart3,
-        label: "Analytics",
-        active: false,
-    },
-    {
-        icon: Settings,
-        label: "Settings",
-        active: false,
-    },
-];
-
 export function SidebarNav() {
     const dispatch = useAppDispatch();
     const { user, organization } = useAppSelector((state) => state.auth);
+
+    const navigation = user?.role === "ADMIN" ? [
+        {
+            icon: MessageSquare,
+            label: "Inbox",
+            active: true,
+        },
+        {
+            icon: BarChart3,
+            label: "View Analytics",
+            active: false,
+        },
+        {
+            icon: User2,
+            label: "Manage Agents",
+            active: false,
+        },
+        {
+            icon: Settings,
+            label: "Settings",
+            active: false,
+        },
+    ] :
+        [
+            {
+                icon: MessageSquare,
+                label: "Inbox",
+                active: true,
+            },
+            {
+                icon: Settings,
+                label: "Settings",
+                active: false,
+            },
+        ];
+
 
     const handleLogout = () => {
         dispatch(logoutUser());
