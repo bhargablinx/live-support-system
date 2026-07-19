@@ -4,7 +4,10 @@ import React, { useState, useMemo } from "react";
 import { Conversation } from "@/lib/types";
 import { mockVisitorDetails, VisitorDetail } from "@/lib/mock";
 import { Button } from "@/components/ui/button";
-import { MapPin, Globe, Laptop, Clock, StickyNote, CheckCircle, RefreshCcw, User, Archive } from "lucide-react";
+import { MapPin, Globe, Laptop, Clock, StickyNote, CheckCircle, RefreshCcw, Archive } from "lucide-react";
+import { Card, CardContent } from "../ui/card";
+import { Badge } from "../ui/badge";
+import { Avatar, AvatarFallback } from "../ui/avatar";
 
 interface CustomerDetailsProps {
     conversation: Conversation | null;
@@ -67,15 +70,30 @@ export function CustomerDetails({ conversation, onResolve, onArchive, onReopen }
     return (
         <aside className="flex h-full w-80 flex-col border-l border-border bg-card/10 overflow-y-auto">
             {/* Header / Avatar */}
-            <div className="flex flex-col items-center text-center p-6 border-b border-border">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary font-extrabold text-xl uppercase shadow-sm">
-                    {visitor.name ? visitor.name.charAt(0) : <User className="h-8 w-8" />}
-                </div>
-                <h3 className="font-bold text-base mt-4 text-foreground truncate max-w-full">
-                    {visitor.name}
-                </h3>
-                <p className="text-xs text-muted-foreground truncate max-w-full">{visitor.email}</p>
-            </div>
+            <Card className="rounded-none border-x-0 border-t-0 shadow-none">
+                <CardContent className="flex flex-col items-center pt-6">
+                    <Avatar className="h-16 w-16">
+                        <AvatarFallback className="text-lg font-semibold">
+                            {visitor.name?.charAt(0)}
+                        </AvatarFallback>
+                    </Avatar>
+
+                    <h2 className="mt-4 font-semibold">
+                        {visitor.name}
+                    </h2>
+
+                    <p className="text-sm text-muted-foreground">
+                        {visitor.email}
+                    </p>
+
+                    <Badge
+                        variant="secondary"
+                        className="mt-3"
+                    >
+                        Online
+                    </Badge>
+                </CardContent>
+            </Card>
 
             {/* Profile Info Sections */}
             <div className="flex-1 p-6 space-y-6">
