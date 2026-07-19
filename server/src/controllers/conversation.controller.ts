@@ -386,6 +386,57 @@ const reopenConversation = asyncHandler(async (req: Request, res: Response) => {
     );
 });
 
+const deleteConversation = asyncHandler(async (req: Request, res: Response) => {
+    const id = req.params.id as string;
+    const user = req.user;
+
+    if (!user) {
+        throw new ApiError({
+            statusCode: 401,
+            message: "Unauthorized request",
+            error: "Unauthorized"
+        });
+    }
+
+    const conversation = await prisma.conversation.findUnique({
+        where: {
+            id,
+            organizationId: user.organizationId
+        }
+    });
+
+    if (!conversation) {
+        throw new ApiError({
+            statusCode: 404,
+            message: "Conversation not found",
+            error: "Not Found"
+        });
+    }
+
+    // Delete messages first, then the conversation
+    await prisma.$transaction([
+        prisma.message.deleteMany({
+            where: { conversationId: id }
+        }),
+        prisma.conversation.delete({
+            where: { id }
+        })
+    ]);
+
+    const io = req.app.get("io");
+    if (io) {
+        io.to(`org_${user.organizationId}`).emit("conversation_deleted", { id });
+    }
+
+    return res.status(200).json(
+        new ApiResponse({
+            statusCode: 200,
+            message: "Conversation deleted successfully",
+            data: { id }
+        })
+    );
+});
+
 export { 
     createConversation, 
     getConversations, 
@@ -393,5 +444,6 @@ export {
     resolveConversation, 
     getMessages, 
     archiveConversation, 
-    reopenConversation 
+    reopenConversation,
+    deleteConversation
 }
