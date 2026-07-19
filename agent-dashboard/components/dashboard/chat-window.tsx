@@ -5,7 +5,13 @@ import { useAppSelector } from "@/lib/store/store";
 import { Conversation, Message } from "@/lib/types";
 import { mockVisitorDetails } from "@/lib/mock";
 import { Button } from "@/components/ui/button";
-import { Send, Smile, CornerDownLeft, Inbox, Bolt, ShieldAlert, Sparkles, Terminal } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Command, CommandList, CommandItem, CommandEmpty, CommandGroup } from "@/components/ui/command";
+import { Send, Smile, Paperclip, Search, MoreHorizontal, Inbox, UserPlus, Bolt } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ChatWindowProps {
@@ -32,8 +38,8 @@ export function ChatWindow({
     const [inputValue, setInputValue] = useState("");
     const [showCanned, setShowCanned] = useState(false);
     const [filteredCanned, setFilteredCanned] = useState(CANNED_RESPONSES);
-    const [cannedIndex, setCannedIndex] = useState(0);
     const feedEndRef = useRef<HTMLDivElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const isClaimedByMe = conversation?.assignedUserId === user?.id;
     const isUnassigned = conversation?.assignedUserId === null;
@@ -43,20 +49,19 @@ export function ChatWindow({
     }, [messages, conversation]);
 
     // Handle typing change (detect "/")
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const val = e.target.value;
         setInputValue(val);
 
         if (val.startsWith("/")) {
             setShowCanned(true);
-            const query = val.toLowerCase();
+            const query = val.toLowerCase().replace("/", "");
             const filtered = CANNED_RESPONSES.filter(
                 (c) =>
                     c.shortcut.toLowerCase().includes(query) ||
                     c.text.toLowerCase().includes(query)
             );
             setFilteredCanned(filtered);
-            setCannedIndex(0);
         } else {
             setShowCanned(false);
         }
@@ -66,24 +71,24 @@ export function ChatWindow({
     const selectCanned = (text: string) => {
         setInputValue(text);
         setShowCanned(false);
+        textareaRef.current?.focus();
     };
 
-    // Handle Keydown (canned selection list navigation)
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Handle Keydown
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (showCanned && filteredCanned.length > 0) {
-            if (e.key === "ArrowDown") {
-                e.preventDefault();
-                setCannedIndex((prev) => (prev + 1) % filteredCanned.length);
-            } else if (e.key === "ArrowUp") {
-                e.preventDefault();
-                setCannedIndex((prev) => (prev - 1 + filteredCanned.length) % filteredCanned.length);
-            } else if (e.key === "Enter") {
-                e.preventDefault();
-                selectCanned(filteredCanned[cannedIndex].text);
-            } else if (e.key === "Escape") {
+            if (e.key === "Escape") {
                 setShowCanned(false);
             }
-        } else if (e.key === "Enter" && !e.shiftKey) {
+            // Simplification: just select the first one if they hit enter while canned is open
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                selectCanned(filteredCanned[0].text);
+                return;
+            }
+        }
+
+        if (e.key === "Enter" && !e.shiftKey && !showCanned) {
             e.preventDefault();
             handleSend();
         }
@@ -99,9 +104,9 @@ export function ChatWindow({
     // Render empty state if no active chat
     if (!conversation) {
         return (
-            <div className="flex h-full w-full flex-col items-center justify-center bg-muted/10 p-8 text-center border-r border-border">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/40 shadow-inner mb-4">
-                    <Inbox className="h-8 w-8 text-muted-foreground/60" />
+            <div className="flex h-full w-full flex-col items-center justify-center bg-muted/5 p-8 text-center border-r border-border">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/20 mb-4">
+                    <Inbox className="h-8 w-8 text-muted-foreground/50" />
                 </div>
                 <h3 className="text-lg font-semibold text-foreground">No active conversation</h3>
                 <p className="text-sm text-muted-foreground max-w-sm mt-2">
@@ -114,173 +119,229 @@ export function ChatWindow({
     const dbVisitor = conversation.visitor;
     const mockVisitor = mockVisitorDetails[conversation.visitorId];
     const visitorName = mockVisitor?.name || dbVisitor?.name || `Visitor #${conversation.visitorId.slice(-4)}`;
-    const avatarChar = visitorName.charAt(0);
+    const visitorEmail = mockVisitor?.email || "visitor@example.com";
+    const avatarChar = visitorName.charAt(0).toUpperCase();
+
+    const groupedMessages = messages;
 
     return (
         <section className="flex h-full w-full flex-col bg-background border-r border-border relative">
             {/* Header info */}
-            <div className="flex h-16 w-full items-center justify-between border-b border-border bg-card/40 backdrop-blur-md px-6 z-10">
+            <div className="flex w-full items-center justify-between border-b border-border bg-card/40 px-6 py-4 z-10 shrink-0">
                 <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-sm uppercase">
-                        {avatarChar}
-                    </div>
-                    <div>
-                        <h2 className="text-sm font-bold text-foreground">
+                    <Avatar className="h-10 w-10 border border-border/50">
+                        <AvatarFallback className="bg-primary/10 text-primary font-bold">{avatarChar}</AvatarFallback>
+                    </Avatar>
+
+                    <div className="flex flex-col">
+                        <h2 className="text-[15px] font-semibold text-foreground leading-tight">
                             {visitorName}
                         </h2>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                            <span className="text-[10px] text-muted-foreground font-medium">
-                                Active on checkout
-                            </span>
+                        <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[11px] text-muted-foreground leading-none">{visitorEmail}</span>
+                            <span className="text-muted-foreground/30 text-[10px] leading-none">•</span>
+                            <div className="flex items-center gap-1.5">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                <span className="text-[11px] text-muted-foreground font-medium leading-none">
+                                    Online • Checkout Page
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-4">
                     {conversation.assignedUserId && (
-                        <div className="flex items-center gap-1.5 rounded-lg border border-border bg-muted/50 px-2.5 py-1 text-xs text-muted-foreground font-semibold uppercase">
-                            <ShieldAlert className="h-3.5 w-3.5" />
+                        <div className="text-xs text-muted-foreground font-medium bg-muted px-2.5 py-1 rounded-md">
                             {isClaimedByMe ? "Assigned to You" : "Assigned"}
                         </div>
                     )}
+                    <div className="flex items-center gap-1">
+                        <TooltipProvider delay={150}>
+                            <Tooltip>
+                                <TooltipTrigger render={
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
+                                        <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                } />
+                                <TooltipContent>More Options</TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </div>
                 </div>
             </div>
 
-            {/* Unassigned banner overlay */}
+            {/* Unassigned Conversation Banner */}
             {isUnassigned && (
-                <div className="flex w-full items-center justify-between bg-amber-500/10 border-b border-amber-500/20 px-6 py-3.5 z-10 animate-in slide-in-from-top duration-300">
-                    <div className="flex items-center gap-2.5">
-                        <Bolt className="h-5 w-5 text-amber-600 dark:text-amber-400 animate-bounce" />
-                        <div className="text-left">
-                            <p className="text-xs font-bold text-foreground">Unassigned Conversation</p>
-                            <p className="text-[10px] text-muted-foreground mt-0.5">This conversation is pending agent response.</p>
+                <div className="shrink-0 border-b bg-amber-500/5 px-5 py-3">
+                    <div className="flex items-center justify-between rounded-xl border border-amber-500/20 bg-background/80 px-4 py-3 backdrop-blur">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10">
+                                <Bolt className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                            </div>
+
+                            <div>
+                                <h3 className="text-sm font-semibold">
+                                    Unassigned conversation
+                                </h3>
+
+                                <p className="text-xs text-muted-foreground">
+                                    Claim this conversation to start replying to the visitor.
+                                </p>
+                            </div>
                         </div>
+
+                        <Button
+                            onClick={onClaim}
+                            size="sm"
+                            className="gap-2 rounded-lg"
+                        >
+                            <UserPlus className="h-4 w-4" />
+                            Claim Conversation
+                        </Button>
                     </div>
-                    <Button
-                        size="sm"
-                        onClick={onClaim}
-                        className="bg-amber-600 text-white hover:bg-amber-500 shadow-md font-semibold text-xs rounded-lg transition-transform hover:scale-[1.02] active:scale-[0.98]"
-                    >
-                        Claim Conversation
-                    </Button>
                 </div>
             )}
 
             {/* Message bubbles thread */}
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-                {messages.length === 0 ? (
-                    <div className="flex h-full flex-col items-center justify-center py-12 px-4 text-center">
-                        <Sparkles className="h-8 w-8 text-primary/40 animate-pulse mb-3" />
-                        <p className="text-sm font-semibold text-muted-foreground">New Connection</p>
-                        <p className="text-xs text-muted-foreground/60 max-w-xs mt-1">
-                            No message history. Claim the conversation and type below to begin.
-                        </p>
-                    </div>
-                ) : (
-                    messages.map((m) => {
-                        const isAgent = m.senderType === "AGENT";
-                        return (
-                            <div
-                                key={m.id}
-                                className={cn(
-                                    "flex w-full flex-col gap-1.5",
-                                    isAgent ? "items-end" : "items-start"
-                                )}
-                            >
-                                <div
-                                    className={cn(
-                                        "max-w-[70%] rounded-2xl px-4 py-2.5 text-sm shadow-sm",
-                                        isAgent
-                                            ? "bg-primary text-primary-foreground rounded-tr-none"
-                                            : "bg-muted text-foreground rounded-tl-none"
-                                    )}
-                                >
-                                    <p className="leading-relaxed break-words">{m.content}</p>
-                                </div>
-                                <span suppressHydrationWarning className="text-[9px] text-muted-foreground px-1.5 font-medium">
-                                    {new Date(m.createdAt).toLocaleTimeString([], {
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                    })}
-                                </span>
+            <ScrollArea className="flex-1 bg-muted/15">
+                <div className="px-6 py-6 flex flex-col gap-6">
+                    {messages.length === 0 ? (
+                        <div className="flex h-[300px] flex-col items-center justify-center text-center">
+                            <Avatar className="h-16 w-16 mb-4 border border-border/50">
+                                <AvatarFallback className="bg-primary/5 text-primary text-xl font-bold">{avatarChar}</AvatarFallback>
+                            </Avatar>
+                            <h3 className="text-lg font-semibold text-foreground">{visitorName}</h3>
+                            <p className="text-sm text-muted-foreground max-w-sm mt-1">
+                                No previous conversation
+                            </p>
+                            <p className="text-sm text-muted-foreground max-w-sm mt-4 bg-muted/50 px-4 py-2 rounded-lg border border-border/50">
+                                Start by introducing yourself.
+                            </p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="flex items-center justify-center my-2">
+                                <Separator className="flex-1" />
+                                <span className="text-[10px] uppercase font-bold text-muted-foreground px-4 bg-transparent">Today</span>
+                                <Separator className="flex-1" />
                             </div>
-                        );
-                    })
-                )}
-                <div ref={feedEndRef} />
-            </div>
+
+                            {groupedMessages.map((m, index) => {
+                                const isAgent = m.senderType === "AGENT";
+                                const prevMessage = index > 0 ? groupedMessages[index - 1] : null;
+                                const showSender = !prevMessage || prevMessage.senderType !== m.senderType;
+
+                                return (
+                                    <div
+                                        key={m.id}
+                                        className={cn(
+                                            "flex w-full flex-col gap-1",
+                                            isAgent ? "items-end" : "items-start"
+                                        )}
+                                    >
+                                        {showSender && (
+                                            <span className="text-xs font-semibold text-muted-foreground mb-0.5 px-1">
+                                                {isAgent ? "You" : visitorName.split(" ")[0]}
+                                            </span>
+                                        )}
+                                        <div
+                                            className={cn(
+                                                "relative max-w-[75%] px-3.5 pt-2.5 pb-2 text-[14px] shadow-sm flex flex-col gap-1 rounded-2xl",
+                                                isAgent
+                                                    ? "bg-primary text-primary-foreground rounded-br-[4px]"
+                                                    : "bg-background border border-border text-foreground rounded-bl-[4px]"
+                                            )}
+                                        >
+                                            <p className="leading-relaxed break-words whitespace-pre-wrap">{m.content}</p>
+                                            <span
+                                                suppressHydrationWarning
+                                                className={cn(
+                                                    "text-[10px] self-end mt-0.5 font-medium",
+                                                    isAgent ? "text-primary-foreground/70" : "text-muted-foreground"
+                                                )}
+                                            >
+                                                {new Date(m.createdAt).toLocaleTimeString([], {
+                                                    hour: "2-digit",
+                                                    minute: "2-digit",
+                                                })}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </>
+                    )}
+                    <div ref={feedEndRef} className="h-2" />
+                </div>
+            </ScrollArea>
 
             {/* Compose area */}
-            <div className="border-t border-border bg-card/30 backdrop-blur-md p-4">
-                {/* Canned Responses Suggestion Dropdown */}
-                {showCanned && filteredCanned.length > 0 && (
-                    <div className="absolute left-4 right-4 bottom-20 z-50 rounded-xl border border-border bg-popover p-2 shadow-2xl animate-in slide-in-from-bottom-3 duration-200">
-                        <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-border mb-1 text-[10px] font-bold text-muted-foreground uppercase">
-                            <Terminal className="h-3 w-3" />
-                            Canned response shortcuts
+            <div className="p-4 bg-background border-t border-border shrink-0">
+                <div className="relative rounded-xl border border-input bg-background focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all shadow-sm">
+
+                    {/* Canned Responses Popover inside Input container visually */}
+                    {showCanned && filteredCanned.length > 0 && (
+                        <div className="absolute left-0 right-0 bottom-full mb-2 z-50">
+                            <Command className="rounded-xl border border-border shadow-lg max-h-[300px]" shouldFilter={false}>
+                                <CommandList>
+                                    <CommandEmpty>No results found.</CommandEmpty>
+                                    <CommandGroup heading="Canned Responses">
+                                        {filteredCanned.map((c) => (
+                                            <CommandItem
+                                                key={c.shortcut}
+                                                onSelect={() => selectCanned(c.text)}
+                                                className="cursor-pointer gap-2"
+                                            >
+                                                <span className="font-semibold w-16 text-xs">{c.shortcut}</span>
+                                                <span className="text-muted-foreground text-xs truncate">{c.text}</span>
+                                            </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                </CommandList>
+                            </Command>
                         </div>
-                        <ul className="space-y-0.5">
-                            {filteredCanned.map((c, i) => (
-                                <li
-                                    key={c.shortcut}
-                                    onClick={() => selectCanned(c.text)}
-                                    className={cn(
-                                        "flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors text-xs",
-                                        i === cannedIndex
-                                            ? "bg-primary text-primary-foreground"
-                                            : "hover:bg-muted text-foreground"
-                                    )}
-                                >
-                                    <span className="font-semibold">{c.shortcut}</span>
-                                    <span className={cn("truncate max-w-[240px]", i === cannedIndex ? "text-primary-foreground/80" : "text-muted-foreground")}>
-                                        {c.text}
-                                    </span>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                )}
+                    )}
 
-                <div className="flex items-center gap-2">
-                    <div className="relative flex-1 flex items-center">
-                        <input
-                            type="text"
-                            placeholder={
-                                isClaimedByMe
-                                    ? "Type a message... (use '/' for shortcuts)"
-                                    : "You must claim this chat to write messages"
-                            }
-                            disabled={!isClaimedByMe}
-                            value={inputValue}
-                            onChange={handleInputChange}
-                            onKeyDown={handleKeyDown}
-                            className="h-11 w-full rounded-xl border border-input bg-background/50 pl-4 pr-12 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary disabled:opacity-60 disabled:cursor-not-allowed"
-                        />
-                        <button
-                            type="button"
-                            disabled={!isClaimedByMe}
-                            className="absolute right-3 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30"
+                    <Textarea
+                        ref={textareaRef}
+                        placeholder={
+                            isClaimedByMe
+                                ? "🙂 Type a message... (use '/' for shortcuts)"
+                                : "You must claim this chat to write messages"
+                        }
+                        disabled={!isClaimedByMe}
+                        value={inputValue}
+                        onChange={handleInputChange}
+                        onKeyDown={handleKeyDown}
+                        rows={1}
+                        className="resize-none border-0 shadow-none focus-visible:ring-0 px-4 py-3 min-h-[44px] max-h-[200px] bg-transparent text-sm"
+                    />
+
+                    <div className="flex items-center justify-between px-3 pb-2 pt-1">
+                        <div className="flex items-center gap-1">
+                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" disabled={!isClaimedByMe}>
+                                <Paperclip className="h-4 w-4" />
+                            </Button>
+                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" disabled={!isClaimedByMe}>
+                                <Smile className="h-4 w-4" />
+                            </Button>
+                        </div>
+
+                        <Button
+                            size="sm"
+                            disabled={!isClaimedByMe || !inputValue.trim()}
+                            onClick={handleSend}
+                            variant={inputValue.trim() ? "default" : "ghost"}
+                            className={cn(
+                                "h-8 px-3 rounded-lg transition-all",
+                                !inputValue.trim() && "text-muted-foreground hover:bg-muted"
+                            )}
                         >
-                            <Smile className="h-5 w-5" />
-                        </button>
+                            <Send className="h-4 w-4 mr-1.5" />
+                            Send
+                        </Button>
                     </div>
-
-                    <Button
-                        size="icon"
-                        disabled={!isClaimedByMe || !inputValue.trim()}
-                        onClick={handleSend}
-                        className="h-11 w-11 rounded-xl bg-primary text-primary-foreground shadow-md hover:bg-primary/95 transition-transform hover:scale-[1.02] active:scale-[0.98]"
-                    >
-                        <Send className="h-4.5 w-4.5" />
-                    </Button>
-                </div>
-
-                <div className="flex items-center justify-between mt-2.5 px-1">
-                    <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                        <CornerDownLeft className="h-3 w-3" />
-                        Press Enter to send
-                    </span>
                 </div>
             </div>
         </section>
