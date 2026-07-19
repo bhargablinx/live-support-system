@@ -4,12 +4,14 @@ import { useState } from "react";
 import { useAppSelector } from "@/lib/store/store";
 import { Conversation, Message } from "@/lib/types";
 import { mockVisitorDetails } from "@/lib/mock";
-import { Search, Inbox, UserCheck, CheckCircle2, User, RefreshCw } from "lucide-react";
+import { Search, Inbox, UserCheck, CheckCircle2, RefreshCw, MessageSquareOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ScrollArea } from "../ui/scroll-area";
 
 interface ConversationListProps {
     conversations: Conversation[];
@@ -188,7 +190,7 @@ export function ConversationList({
             </Tabs>
 
             {/* Chat List Scrollarea */}
-            <div className="flex-1 overflow-y-auto px-2 space-y-1">
+            {/* <div className="flex-1 overflow-y-auto px-2 space-y-1">
                 {filteredConversations.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
                         <p className="text-sm text-muted-foreground font-medium">
@@ -275,7 +277,121 @@ export function ConversationList({
                         );
                     })
                 )}
-            </div>
+            </div> */}
+            <ScrollArea className="flex-1">
+                <div className="space-y-1 p-2">
+                    {filteredConversations.length === 0 ? (
+                        <div className="flex h-[320px] flex-col items-center justify-center px-6 text-center">
+                            <div className="mb-4 rounded-full bg-muted p-4">
+                                <MessageSquareOff className="h-6 w-6 text-muted-foreground" />
+                            </div>
+
+                            <h3 className="text-sm font-semibold">
+                                No conversations
+                            </h3>
+
+                            <p className="mt-1 max-w-[220px] text-xs text-muted-foreground">
+                                {searchQuery
+                                    ? "No conversations match your search."
+                                    : "You're all caught up. New conversations will appear here."}
+                            </p>
+                        </div>
+                    ) : (
+                        filteredConversations.map((c) => {
+                            const visitor = mockVisitorDetails[c.visitorId];
+                            const chatMessages = messages[c.id] || [];
+                            const lastMessage = chatMessages.at(-1);
+
+                            const isSelected = selectedId === c.id;
+
+                            const visitorName =
+                                visitor?.name ||
+                                c.visitor?.name ||
+                                (c.visitor
+                                    ? `Visitor #${c.visitorId.slice(-4)}`
+                                    : "Visitor");
+
+                            const timeStr = lastMessage
+                                ? new Date(lastMessage.createdAt).toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                })
+                                : new Date(c.createdAt).toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                });
+
+                            return (
+                                <button
+                                    key={c.id}
+                                    onClick={() => onSelect(c.id)}
+                                    className={cn(
+                                        "group relative flex w-full items-start gap-3 rounded-xl border px-3 py-3 text-left transition-all",
+                                        isSelected
+                                            ? "border-primary/30 bg-accent"
+                                            : "border-transparent hover:border-border hover:bg-accent/60"
+                                    )}
+                                >
+                                    {isSelected && (
+                                        <span className="absolute left-0 top-3 bottom-3 w-1 rounded-r-full bg-primary" />
+                                    )}
+
+                                    <Avatar className="h-10 w-10 shrink-0">
+                                        <AvatarFallback className="bg-primary/10 font-semibold text-primary">
+                                            {visitorName.charAt(0).toUpperCase()}
+                                        </AvatarFallback>
+                                    </Avatar>
+
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <h3 className="truncate text-sm font-semibold">
+                                                {visitorName}
+                                            </h3>
+
+                                            <span
+                                                suppressHydrationWarning
+                                                className="text-xs text-muted-foreground"
+                                            >
+                                                {timeStr}
+                                            </span>
+                                        </div>
+
+                                        <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                                            {lastMessage?.content || "No messages yet"}
+                                        </p>
+
+                                        <div className="mt-3 flex items-center gap-2">
+                                            {c.status === "NEW" && (
+                                                <Badge
+                                                    variant="secondary"
+                                                    className="border-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                                >
+                                                    New
+                                                </Badge>
+                                            )}
+
+                                            {c.status === "ACTIVE" && (
+                                                <Badge variant="outline">
+                                                    Active
+                                                </Badge>
+                                            )}
+
+                                            {c.status === "RESOLVED" && (
+                                                <Badge
+                                                    variant="secondary"
+                                                    className="border-0 bg-muted"
+                                                >
+                                                    Resolved
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    </div>
+                                </button>
+                            );
+                        })
+                    )}
+                </div>
+            </ScrollArea>
         </section>
     );
 }
