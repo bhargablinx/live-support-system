@@ -5,6 +5,7 @@ import healthRouter from "./routes/health.route.js"
 import authRouter from "./routes/auth.route.js"
 import visitorRouter from './routes/visitor.route.js'
 import conversationRouter from './routes/conversation.route.js'
+import agentRouter from './routes/agent.route.js'
 import { errorHandler } from "./middleware/errorHandler.js";
 
 const app: Express = express();
@@ -23,6 +24,7 @@ app.use("/api/v1/health", healthRouter)
 app.use("/api/v1/auth", authRouter)
 app.use("/api/v1/visitor", visitorRouter)
 app.use("/api/v1/conversation", conversationRouter)
+app.use("/api/v1/agents", agentRouter)
 
 
 app.use(errorHandler)
