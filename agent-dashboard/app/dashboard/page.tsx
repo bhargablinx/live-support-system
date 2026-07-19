@@ -21,6 +21,7 @@ export default function DashboardPage() {
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [messages, setMessages] = useState<Record<string, Message[]>>({});
     const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [onlineVisitors, setOnlineVisitors] = useState<string[]>([]);
 
     // Store latest conversations in a ref to avoid stale closures in socket event handlers
     const conversationsRef = useRef<Conversation[]>([]);
@@ -63,6 +64,7 @@ export default function DashboardPage() {
         conversationsRef,
         setConversations,
         setMessages,
+        setOnlineVisitors,
         loadConversations,
         selectedId,
     });
@@ -153,6 +155,7 @@ export default function DashboardPage() {
                     messages={activeMessages}
                     onSendMessage={sendMessage}
                     onClaim={handleClaim}
+                    isOnline={activeConversation ? onlineVisitors.includes(activeConversation.visitorId) : false}
                 />
             </div>
 
@@ -163,6 +166,7 @@ export default function DashboardPage() {
                     onResolve={handleResolve}
                     onArchive={handleArchive}
                     onReopen={handleReopen}
+                    isOnline={activeConversation ? onlineVisitors.includes(activeConversation.visitorId) : false}
                 />
             </div>
         </main>

@@ -18,7 +18,8 @@ interface ChatWindowProps {
     conversation: Conversation | null;
     messages: Message[];
     onSendMessage: (content: string) => void;
-    onClaim: () => void;
+    onClaim?: () => void;
+    isOnline?: boolean;
 }
 
 const CANNED_RESPONSES = [
@@ -33,6 +34,7 @@ export function ChatWindow({
     messages,
     onSendMessage,
     onClaim,
+    isOnline = false
 }: ChatWindowProps) {
     const { user } = useAppSelector((state) => state.auth);
     const [inputValue, setInputValue] = useState("");
@@ -141,9 +143,9 @@ export function ChatWindow({
                             <span className="text-[11px] text-muted-foreground leading-none">{visitorEmail}</span>
                             <span className="text-muted-foreground/30 text-[10px] leading-none">•</span>
                             <div className="flex items-center gap-1.5">
-                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                <span className={`inline-block h-2 w-2 rounded-full ${isOnline ? "bg-green-500 animate-pulse" : "bg-gray-400"}`}></span>
                                 <span className="text-[11px] text-muted-foreground font-medium leading-none">
-                                    Online • Checkout Page
+                                    {isOnline ? "Online" : "Offline"} • {dbVisitor?.currentUrl || "Unknown Page"}
                                 </span>
                             </div>
                         </div>

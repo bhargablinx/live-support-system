@@ -32,6 +32,10 @@ export interface Visitor {
     token: string;
     name?: string | null;
     email?: string | null;
+    location?: string | null;
+    currentUrl?: string | null;
+    browser?: string | null;
+    os?: string | null;
     createdAt: string;
 }
 

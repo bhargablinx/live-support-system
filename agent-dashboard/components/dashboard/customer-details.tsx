@@ -14,9 +14,10 @@ interface CustomerDetailsProps {
     onResolve: () => void;
     onArchive: () => void;
     onReopen: () => void;
+    isOnline?: boolean;
 }
 
-export function CustomerDetails({ conversation, onResolve, onArchive, onReopen }: CustomerDetailsProps) {
+export function CustomerDetails({ conversation, onResolve, onArchive, onReopen, isOnline = false }: CustomerDetailsProps) {
     // Load visitor detail
     const dbVisitor = conversation?.visitor;
     const mockVisitor = conversation ? mockVisitorDetails[conversation.visitorId] : undefined;
@@ -29,10 +30,10 @@ export function CustomerDetails({ conversation, onResolve, onArchive, onReopen }
             createdAt: dbVisitor.createdAt,
             name: dbVisitor.name || `Visitor #${dbVisitor.id.slice(-4)}`,
             email: dbVisitor.email || "Not provided",
-            location: "Unknown Location",
-            currentUrl: "https://acme.com",
-            browser: "Web Browser",
-            os: "Visitor Device",
+            location: dbVisitor.location || "Unknown Location",
+            currentUrl: dbVisitor.currentUrl || "Unknown Page",
+            browser: dbVisitor.browser || "Unknown Browser",
+            os: dbVisitor.os || "Unknown OS",
             notes: ""
         } : undefined);
     }, [mockVisitor, dbVisitor]);
@@ -87,10 +88,10 @@ export function CustomerDetails({ conversation, onResolve, onArchive, onReopen }
                     </p>
 
                     <Badge
-                        variant="secondary"
-                        className="mt-3"
+                        variant={isOnline ? "secondary" : "outline"}
+                        className={`mt-3 ${isOnline ? "bg-green-100 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400" : ""}`}
                     >
-                        Online
+                        {isOnline ? "Online" : "Offline"}
                     </Badge>
                 </CardContent>
             </Card>

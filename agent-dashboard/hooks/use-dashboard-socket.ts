@@ -7,6 +7,7 @@ interface UseDashboardSocketProps {
     conversationsRef: React.MutableRefObject<Conversation[]>;
     setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
     setMessages: React.Dispatch<React.SetStateAction<Record<string, Message[]>>>;
+    setOnlineVisitors: React.Dispatch<React.SetStateAction<string[]>>;
     loadConversations: () => Promise<void>;
     selectedId: string | null;
 }
@@ -15,6 +16,7 @@ export function useDashboardSocket({
     conversationsRef,
     setConversations,
     setMessages,
+    setOnlineVisitors,
     loadConversations,
     selectedId,
 }: UseDashboardSocketProps) {
@@ -95,6 +97,15 @@ export function useDashboardSocket({
             );
         });
 
+        // Listen for presence
+        socket.on("visitor_online", ({ visitorId }: { visitorId: string }) => {
+            setOnlineVisitors((prev) => (prev.includes(visitorId) ? prev : [...prev, visitorId]));
+        });
+
+        socket.on("visitor_offline", ({ visitorId }: { visitorId: string }) => {
+            setOnlineVisitors((prev) => prev.filter((id) => id !== visitorId));
+        });
+
         // Listen for disconnect
         socket.on("disconnect", () => {
             console.log("Socket disconnected");
@@ -104,7 +115,7 @@ export function useDashboardSocket({
             socket.disconnect();
             socketRef.current = null;
         };
-    }, [user, setConversations, setMessages, loadConversations, conversationsRef]);
+    }, [user, setConversations, setMessages, setOnlineVisitors, loadConversations, conversationsRef]);
 
     // Handle joining chat rooms when selecting chats
     useEffect(() => {
