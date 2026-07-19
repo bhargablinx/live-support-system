@@ -3,11 +3,11 @@ import { Button } from "../ui/button";
 import { ChatBubble } from "./chat-bubble";
 import { ChatInput } from "./chat-input";
 import type { Message, SocketStatus } from "../../types/type";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { createVisitor } from "@/lib/api";
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState } from "@/store/store";
-import { saveToLocal, getFromLocal } from "@/lib/utils";
+import { saveToLocal } from "@/lib/utils";
 import { setVisitorToken } from "@/features/auth/authSlice";
 
 interface ChatPageProps {
@@ -29,6 +29,7 @@ export default function ChatPage({ open, setOpen, messages, onSend, socketStatus
     const { organizationId, visitorToken } = useSelector((state: RootState) => state.auth);
     const dispatch = useDispatch();
     const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleSend = (message: string) => {
@@ -38,10 +39,11 @@ export default function ChatPage({ open, setOpen, messages, onSend, socketStatus
     const handleRegisterVisitor = (e: React.FormEvent) => {
         e.preventDefault();
         const trimmedName = name.trim();
-        if (!trimmedName || !organizationId) return;
+        const trimmedEmail = email.trim();
+        if (!trimmedName || !trimmedEmail || !organizationId) return;
 
         setIsSubmitting(true);
-        createVisitor(organizationId, trimmedName)
+        createVisitor(organizationId, trimmedName, trimmedEmail)
             .then((res) => {
                 if (res && res.visitorToken) {
                     saveToLocal("visitorToken", res.visitorToken);
@@ -97,7 +99,20 @@ export default function ChatPage({ open, setOpen, messages, onSend, socketStatus
                         />
                     </div>
 
-                    <Button type="submit" disabled={isSubmitting || !name.trim()} className="w-full font-semibold h-10 rounded-lg">
+                    <div className="space-y-1.5">
+                        <label htmlFor="email-input" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Your Email</label>
+                        <input
+                            id="email-input"
+                            type="email"
+                            placeholder="e.g. john@example.com"
+                            required
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="h-10 w-full rounded-lg border border-input bg-background/50 px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                        />
+                    </div>
+
+                    <Button type="submit" disabled={isSubmitting || !name.trim() || !email.trim()} className="w-full font-semibold h-10 rounded-lg">
                         {isSubmitting ? "Starting Chat..." : "Start Chat"}
                     </Button>
                 </form>
