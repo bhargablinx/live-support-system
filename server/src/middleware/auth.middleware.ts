@@ -44,4 +44,26 @@ const verifyJwt = asyncHandler(async (req: Request, res: Response, next: NextFun
 
 })
 
-export { verifyJwt }
+const authorizeRole = (...allowedRoles: string[]) => {
+    return asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+        if (!req.user) {
+            throw new ApiError({
+                statusCode: 401,
+                message: "Unauthorized",
+                error: "Unauthorized",
+            });
+        }
+
+        if (!allowedRoles.includes(req.user.role)) {
+            throw new ApiError({
+                statusCode: 403,
+                message: "Forbidden: Insufficient role permissions",
+                error: "Forbidden",
+            });
+        }
+
+        next();
+    });
+};
+
+export { verifyJwt, authorizeRole }
