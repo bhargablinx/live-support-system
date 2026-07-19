@@ -7,12 +7,12 @@ import prisma from '../utils/prisma.js';
 
 const createVisitor = asyncHandler(async (req: Request, res: Response) => {
 
-    const { organizationId, name } = req.body;
+    const { organizationId, name, email } = req.body;
 
-    if (!organizationId || !name)
+    if (!organizationId || !name || !email)
         throw new ApiError({
             statusCode: 400,
-            message: "Organization id and name are required",
+            message: "Organization id, name, and email are required",
             error: "Bad Request"
         })
 
@@ -35,7 +35,8 @@ const createVisitor = asyncHandler(async (req: Request, res: Response) => {
         data: {
             token,
             organizationId,
-            name
+            name,
+            email
         }
     });
 
