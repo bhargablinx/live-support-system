@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppSelector } from "@/lib/store/store";
 import { Loader2 } from "lucide-react";
+import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 
 export default function DashboardLayout({
     children,
@@ -38,5 +39,12 @@ export default function DashboardLayout({
         return null; // Prevents flashing dashboard content while redirecting
     }
 
-    return <div className="h-screen overflow-hidden bg-background">{children}</div>;
+    return (
+        <div className="flex h-screen w-screen overflow-hidden bg-background">
+            <SidebarNav />
+            <div className="flex-1 overflow-hidden min-w-0">
+                {children}
+            </div>
+        </div>
+    );
 }

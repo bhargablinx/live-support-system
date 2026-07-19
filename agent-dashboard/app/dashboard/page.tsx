@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useAppSelector } from "@/lib/store/store";
-import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { ConversationList } from "@/components/dashboard/conversation-list";
 import { ChatWindow } from "@/components/dashboard/chat-window";
 import { CustomerDetails } from "@/components/dashboard/customer-details";
@@ -150,10 +149,7 @@ export default function DashboardPage() {
     };
 
     return (
-        <main className="flex h-screen w-screen overflow-hidden">
-            {/* Narrow Left Sidebar */}
-            <SidebarNav />
-
+        <main className="flex h-full w-full overflow-hidden">
             {/* Panel 1: Conversation list sidebar */}
             <div className="w-80 shrink-0 h-full">
                 <ConversationList

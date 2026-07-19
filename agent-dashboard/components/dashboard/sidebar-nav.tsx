@@ -18,45 +18,48 @@ import {
 } from "@/components/ui/tooltip";
 
 import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/lib/store/store";
 import { logoutUser } from "@/lib/store/auth-slice";
 
 export function SidebarNav() {
     const dispatch = useAppDispatch();
+    const pathname = usePathname();
     const { user, organization } = useAppSelector((state) => state.auth);
 
     const navigation = user?.role === "ADMIN" ? [
         {
             icon: MessageSquare,
             label: "Inbox",
-            active: true,
+            href: "/dashboard",
         },
         {
             icon: BarChart3,
             label: "View Analytics",
-            active: false,
+            href: "/dashboard/analytics",
         },
         {
             icon: User2,
             label: "Manage Agents",
-            active: false,
+            href: "/dashboard/agents",
         },
         {
             icon: Settings,
             label: "Settings",
-            active: false,
+            href: "/dashboard/settings",
         },
     ] :
         [
             {
                 icon: MessageSquare,
                 label: "Inbox",
-                active: true,
+                href: "/dashboard",
             },
             {
                 icon: Settings,
                 label: "Settings",
-                active: false,
+                href: "/dashboard/settings",
             },
         ];
 
@@ -79,27 +82,25 @@ export function SidebarNav() {
                 <nav className="flex flex-1 flex-col items-center gap-1 py-4">
                     {navigation.map((item) => {
                         const Icon = item.icon;
-
+                        const isActive = pathname === item.href;
                         return (
                             <Tooltip key={item.label}>
                                 <TooltipTrigger
                                     render={
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className={cn(
-                                                "relative h-11 w-11 rounded-xl transition-all duration-200",
-                                                item.active
-                                                    ? "bg-accent text-accent-foreground"
-                                                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                                            )}
-                                        >
-                                            {item.active && (
-                                                <span className="absolute -left-[13px] h-6 w-1 rounded-r-full bg-primary" />
-                                            )}
-
-                                            <Icon className="h-5 w-5" />
-                                        </Button>
+                                        <Link href={item.href} passHref legacyBehavior>
+                                            <Button
+                                                variant={isActive ? "secondary" : "ghost"}
+                                                size="icon"
+                                                className={cn(
+                                                    "h-11 w-11 rounded-xl transition-all duration-200",
+                                                    isActive
+                                                        ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
+                                                        : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                                                )}
+                                            >
+                                                <Icon className="h-5 w-5" />
+                                            </Button>
+                                        </Link>
                                     }
                                 />
 
