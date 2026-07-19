@@ -119,7 +119,7 @@ export function ChatWindow({
     const dbVisitor = conversation.visitor;
     const mockVisitor = mockVisitorDetails[conversation.visitorId];
     const visitorName = mockVisitor?.name || dbVisitor?.name || `Visitor #${conversation.visitorId.slice(-4)}`;
-    const visitorEmail = mockVisitor?.email || "visitor@example.com";
+    const visitorEmail = mockVisitor?.email || dbVisitor?.email || "visitor@example.com";
     const avatarChar = visitorName.charAt(0).toUpperCase();
 
     const groupedMessages = messages;

@@ -28,7 +28,7 @@ export function CustomerDetails({ conversation, onResolve, onArchive, onReopen }
             token: dbVisitor.token,
             createdAt: dbVisitor.createdAt,
             name: dbVisitor.name || `Visitor #${dbVisitor.id.slice(-4)}`,
-            email: "Not provided",
+            email: dbVisitor.email || "Not provided",
             location: "Unknown Location",
             currentUrl: "https://acme.com",
             browser: "Web Browser",

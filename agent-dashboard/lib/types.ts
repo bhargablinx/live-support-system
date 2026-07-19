@@ -31,6 +31,7 @@ export interface Visitor {
     organizationId: string;
     token: string;
     name?: string | null;
+    email?: string | null;
     createdAt: string;
 }
 
