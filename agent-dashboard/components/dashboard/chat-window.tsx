@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Command, CommandList, CommandItem, CommandEmpty, CommandGroup } from "@/components/ui/command";
-import { Send, Smile, Paperclip, Search, MoreHorizontal, Inbox, UserPlus, Bolt } from "lucide-react";
+import { Send, Smile, Paperclip, MoreHorizontal, Inbox, UserPlus, Bolt } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ChatWindowProps {
