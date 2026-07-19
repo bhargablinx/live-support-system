@@ -11,6 +11,8 @@ export type ConversationStatus =
 
 export type SenderType = "VISITOR" | "AGENT";
 
+export type StatusFilter = "All" | "ADMIN" | "AGENT";
+
 // Core Entities (mirror Prisma models)
 export interface Organization {
     id: string;
@@ -71,6 +73,31 @@ export interface ApiError {
     statusCode: number;
     message: string;
     error: string;
+}
+
+// API — Agents
+export interface Agent {
+    id: string;
+    email: string;
+    role: UserRole;
+    createdAt: string;
+    _count: { conversations: number };
+}
+
+export interface AgentStats {
+    total: number;
+    active: number;
+    inactive: number;
+}
+
+export interface AgentListResponse {
+    stats: AgentStats;
+    agents: Agent[];
+}
+
+export interface CreateAgentRequest {
+    email: string;
+    password: string;
 }
 
 // API — Auth
