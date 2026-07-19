@@ -87,20 +87,20 @@ export function SidebarNav() {
                             <Tooltip key={item.label}>
                                 <TooltipTrigger
                                     render={
-                                        <Link href={item.href} passHref legacyBehavior>
-                                            <Button
-                                                variant={isActive ? "secondary" : "ghost"}
-                                                size="icon"
-                                                className={cn(
-                                                    "h-11 w-11 rounded-xl transition-all duration-200",
-                                                    isActive
-                                                        ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
-                                                        : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-                                                )}
-                                            >
-                                                <Icon className="h-5 w-5" />
-                                            </Button>
-                                        </Link>
+                                        <Button
+                                            render={<Link href={item.href} />}
+                                            nativeButton={false}
+                                            variant={isActive ? "secondary" : "ghost"}
+                                            size="icon"
+                                            className={cn(
+                                                "h-11 w-11 rounded-xl transition-all duration-200",
+                                                isActive
+                                                    ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
+                                                    : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                                            )}
+                                        >
+                                            <Icon className="h-5 w-5" />
+                                        </Button>
                                     }
                                 />
 
