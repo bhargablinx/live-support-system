@@ -3,6 +3,7 @@ import prisma from "../utils/prisma.js";
 import { authenticateSocket } from './authenticateSocket.js';
 import { createAdapter } from "@socket.io/redis-streams-adapter";
 import { redis } from "../redis/redis.js"
+import { presenceService } from "../redis/presence.service.js";
 
 export function registerSocketHandlers(io: Server) {
     io.use(authenticateSocket);
@@ -10,19 +11,35 @@ export function registerSocketHandlers(io: Server) {
     // Use Redis Streams adapter
     io.adapter(createAdapter(redis));
 
-    io.on("connection", (socket: Socket) => {
+    io.on("connection", async (socket: Socket) => {
         console.log(`Socket connected: ${socket.id} (${socket.data.type})`);
 
-        // Join organization room to receive broadcasts
-        if (socket.data.organizationId) {
-            socket.join(`org_${socket.data.organizationId}`);
-            console.log(`Joined organization room: org_${socket.data.organizationId}`);
+        const { organizationId, type, visitorId, userId } = socket.data;
 
-            // If it's a visitor, announce online presence
-            if (socket.data.type === 'visitor' && socket.data.visitorId) {
-                io.to(`org_${socket.data.organizationId}`).emit("visitor_online", { visitorId: socket.data.visitorId });
+        // Join organization room to receive broadcasts
+        if (organizationId) {
+            socket.join(`org_${organizationId}`);
+            console.log(`Joined organization room: org_${organizationId}`);
+        }
+
+        // ── Presence: mark online & start heartbeat ──────────────────────────
+        if (organizationId) {
+            if (type === 'visitor' && visitorId) {
+                await presenceService.setVisitorOnline(visitorId, organizationId);
+                io.to(`org_${organizationId}`).emit("visitor_online", { visitorId });
+            } else if (type === 'agent' && userId) {
+                await presenceService.setAgentOnline(userId, organizationId);
             }
         }
+
+        // Refresh Redis TTL every 30s while the socket stays open
+        const heartbeatInterval = setInterval(async () => {
+            if (type === 'visitor' && visitorId) {
+                await presenceService.heartBeat(visitorId, 'visitor');
+            } else if (type === 'agent' && userId) {
+                await presenceService.heartBeat(userId, 'agent');
+            }
+        }, 30_000);
 
         socket.on("join_room", ({ conversationId }: { conversationId: string }) => {
             socket.join(conversationId)
@@ -57,14 +74,20 @@ export function registerSocketHandlers(io: Server) {
             }
         })
 
-        // presence cleanup comes here (Redis implementation)
-
-        socket.on('disconnect', () => {
+        socket.on('disconnect', async () => {
             console.log(`Socket disconnected: ${socket.id}`);
 
-            // Announce visitor offline presence
-            if (socket.data.organizationId && socket.data.type === 'visitor' && socket.data.visitorId) {
-                io.to(`org_${socket.data.organizationId}`).emit("visitor_offline", { visitorId: socket.data.visitorId });
+            // Stop heartbeat
+            clearInterval(heartbeatInterval);
+
+            // ── Presence: mark offline & notify org ──────────────────────────
+            if (organizationId) {
+                if (type === 'visitor' && visitorId) {
+                    await presenceService.setVisitorOffline(visitorId, organizationId);
+                    io.to(`org_${organizationId}`).emit("visitor_offline", { visitorId });
+                } else if (type === 'agent' && userId) {
+                    await presenceService.setAgentOffline(userId, organizationId);
+                }
             }
         });
     })
