@@ -47,8 +47,38 @@ export function registerSocketHandlers(io: Server) {
             socket.emit("room_joined", { conversationId });
         });
 
+        socket.on("type_start", async ({ conversationId }: { conversationId: string }) => {
+            const actorId = type === "visitor" ? visitorId : userId;
+            if (!actorId || !conversationId) return;
+
+            await presenceService.startTyping(conversationId, actorId, type);
+
+            // Broadcast to the conversation room (excluding the sender)
+            socket.to(conversationId).emit("typing_start", {
+                actorId,
+                actorType: type,
+                conversationId,
+            })
+        });
+
+        socket.on("type_stop", async ({ conversationId }: { conversationId: string }) => {
+            const actorId = type === "visitor" ? visitorId : userId;
+            if (!actorId || !conversationId) return;
+
+            await presenceService.stopTyping(conversationId, actorId);
+
+            socket.to(conversationId).emit("typing_stop", {
+                actorId,
+                conversationId,
+            })
+        })
+
         socket.on("send_message", async ({ conversationId, content }) => {
             const senderType = socket.data.type === "agent" ? "AGENT" : "VISITOR";
+            const actorId = type === "visitor" ? visitorId : userId;
+
+            // Clear typing state when message is sent
+            if (actorId) await presenceService.stopTyping(conversationId, actorId);
 
             // Create message and update conversation timestamp
             const [message] = await prisma.$transaction([
