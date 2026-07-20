@@ -1,9 +1,14 @@
 import { Server, Socket } from "socket.io";
 import prisma from "../utils/prisma.js";
 import { authenticateSocket } from './authenticateSocket.js';
+import { createAdapter } from "@socket.io/redis-streams-adapter";
+import { redis } from "../redis/redis.js"
 
 export function registerSocketHandlers(io: Server) {
     io.use(authenticateSocket);
+
+    // Use Redis Streams adapter
+    io.adapter(createAdapter(redis));
 
     io.on("connection", (socket: Socket) => {
         console.log(`Socket connected: ${socket.id} (${socket.data.type})`);
@@ -12,7 +17,7 @@ export function registerSocketHandlers(io: Server) {
         if (socket.data.organizationId) {
             socket.join(`org_${socket.data.organizationId}`);
             console.log(`Joined organization room: org_${socket.data.organizationId}`);
-            
+
             // If it's a visitor, announce online presence
             if (socket.data.type === 'visitor' && socket.data.visitorId) {
                 io.to(`org_${socket.data.organizationId}`).emit("visitor_online", { visitorId: socket.data.visitorId });
@@ -56,7 +61,7 @@ export function registerSocketHandlers(io: Server) {
 
         socket.on('disconnect', () => {
             console.log(`Socket disconnected: ${socket.id}`);
-            
+
             // Announce visitor offline presence
             if (socket.data.organizationId && socket.data.type === 'visitor' && socket.data.visitorId) {
                 io.to(`org_${socket.data.organizationId}`).emit("visitor_offline", { visitorId: socket.data.visitorId });
