@@ -2,6 +2,7 @@ import { redis } from "./redis.js"
 import { RedisKey } from "./redis.key.gen.js"
 
 const PRESENCE_TTL = 60 // 60 seconds TTL
+const TYPING_TTL = 5
 
 export const presenceService = {
     // Visitor
@@ -50,5 +51,35 @@ export const presenceService = {
             : RedisKey.agentPresence(actorId);
 
         await redis.expire(key, PRESENCE_TTL)
-    }
+    },
+
+    // Both
+    async startTyping(conversationId: string, actorId: string, actorType: "visitor" | "agent") {
+        await redis.set(
+            RedisKey.typing(conversationId, actorId),
+            actorType,   // store the type as the value — useful for the frontend
+            "EX",
+            TYPING_TTL
+        );
+    },
+
+    async stopTyping(conversationId: string, actorId: string) {
+        await redis.del(RedisKey.typing(conversationId, actorId));
+    },
+
+    // Returns all actors currently typing in a conversation
+    async getTypingUsers(conversationId: string): Promise<{ actorId: string; actorType: string }[]> {
+        // Scan keys matching conversation:<id>:typing:*
+        const pattern = `conversation:${conversationId}:typing:*`;
+        const keys = await redis.keys(pattern);
+
+        if (keys.length === 0) return [];
+
+        const values = await redis.mget(...keys);
+
+        return keys.map((key, i) => ({
+            actorId: key.split(":").at(-1)!,   // last segment is the actorId
+            actorType: values[i] ?? "unknown",
+        }));
+    },
 }
