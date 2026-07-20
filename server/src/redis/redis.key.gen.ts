@@ -8,6 +8,7 @@ export const RedisKey = {
 
     // Presence
     visitorPresence: (visitorId: string) => `presence:visitor:${visitorId}`,
+    orgOnlineVisitors: (orgId: string) => `presence:org:${orgId}:visitors`,
     agentPresence: (agentId: string) => `presence:agent:${agentId}`,
     orgOnlineAgents: (orgId: string) => `presence:org:${orgId}:agents`,
 
