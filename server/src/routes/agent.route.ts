@@ -1,10 +1,14 @@
 import { Router } from "express";
 import { getAgents, createAgent, deleteAgent } from "../controllers/agent.controller.js";
+import { getOnlineAgents } from "../controllers/presence.controller.js";
 import { verifyJwt, authorizeRole } from "../middleware/auth.middleware.js";
 
 const router = Router();
 
-// All routes require a valid JWT + ADMIN role
+// Presence — any authenticated user can query online agents
+router.get("/online", verifyJwt, getOnlineAgents);
+
+// All routes below require a valid JWT + ADMIN role
 router.use(verifyJwt, authorizeRole("ADMIN"));
 
 router.get("/", getAgents);
