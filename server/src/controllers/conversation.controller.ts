@@ -437,12 +437,56 @@ const deleteConversation = asyncHandler(async (req: Request, res: Response) => {
     );
 });
 
+// Visitor-facing: fetch messages for a conversation using visitorToken (no JWT needed)
+const getVisitorMessages = asyncHandler(async (req: Request, res: Response) => {
+    const conversationId = req.params.id as string;
+    const visitorToken = req.query.visitorToken as string;
+
+    if (!visitorToken) {
+        throw new ApiError({
+            statusCode: 400,
+            message: "visitorToken query param is required",
+            error: "Bad Request",
+        });
+    }
+
+    // Verify this visitor actually owns the conversation
+    const conversation = await prisma.conversation.findFirst({
+        where: {
+            id: conversationId,
+            visitor: { token: visitorToken },
+        },
+    });
+
+    if (!conversation) {
+        throw new ApiError({
+            statusCode: 404,
+            message: "Conversation not found",
+            error: "Not Found",
+        });
+    }
+
+    const messages = await prisma.message.findMany({
+        where: { conversationId },
+        orderBy: { createdAt: "asc" },
+    });
+
+    return res.status(200).json(
+        new ApiResponse({
+            statusCode: 200,
+            message: "Messages fetched successfully",
+            data: messages,
+        })
+    );
+});
+
 export { 
     createConversation, 
     getConversations, 
     claimConversation, 
     resolveConversation, 
-    getMessages, 
+    getMessages,
+    getVisitorMessages,
     archiveConversation, 
     reopenConversation,
     deleteConversation

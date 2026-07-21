@@ -5,6 +5,7 @@ import {
     claimConversation,
     resolveConversation,
     getMessages,
+    getVisitorMessages,
     archiveConversation,
     reopenConversation,
     deleteConversation
@@ -21,5 +22,6 @@ router.post("/:id/archive", verifyJwt, archiveConversation)
 router.post("/:id/reopen", verifyJwt, reopenConversation)
 router.delete("/:id", verifyJwt, authorizeRole("ADMIN"), deleteConversation)
 router.get("/:id/messages", verifyJwt, getMessages)
+router.get("/:id/visitor-messages", getVisitorMessages)
 
 export default router;
