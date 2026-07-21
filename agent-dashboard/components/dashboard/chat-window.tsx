@@ -167,7 +167,7 @@ export function ChatWindow({
     const groupedMessages = messages;
 
     return (
-        <section className="flex h-full w-full flex-col bg-background border-r border-border relative">
+        <section className="flex h-full w-full flex-col bg-background border-r border-border relative overflow-hidden">
             {/* Header info */}
             <div className="flex w-full items-center justify-between border-b border-border bg-card/40 px-6 py-4 z-10 shrink-0">
                 <div className="flex items-center gap-3">
@@ -252,7 +252,7 @@ export function ChatWindow({
             )}
 
             {/* Message bubbles thread */}
-            <ScrollArea className="flex-1 bg-muted/15">
+            <ScrollArea className="flex-1 min-h-0 bg-muted/15">
                 <div className="px-6 py-6 flex flex-col gap-6">
                     {messages.length === 0 ? (
                         <div className="flex h-[300px] flex-col items-center justify-center text-center">
