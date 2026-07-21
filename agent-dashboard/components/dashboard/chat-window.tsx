@@ -21,6 +21,8 @@ interface ChatWindowProps {
     onClaim?: () => void;
     onDelete?: () => void;
     isOnline?: boolean;
+    isVisitorTyping?: boolean;
+    onTypingChange?: (isTyping: boolean) => void;
 }
 
 const CANNED_RESPONSES = [
@@ -36,7 +38,9 @@ export function ChatWindow({
     onSendMessage,
     onClaim,
     onDelete,
-    isOnline = false
+    isOnline = false,
+    isVisitorTyping = false,
+    onTypingChange,
 }: ChatWindowProps) {
     const { user } = useAppSelector((state) => state.auth);
     const [inputValue, setInputValue] = useState("");
@@ -44,6 +48,9 @@ export function ChatWindow({
     const [filteredCanned, setFilteredCanned] = useState(CANNED_RESPONSES);
     const feedEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    // Track whether we've emitted type_start so we don't spam
+    const isTypingRef = useRef(false);
+    const stopTypingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const isClaimedByMe = conversation?.assignedUserId === user?.id;
     const isUnassigned = conversation?.assignedUserId === null;
@@ -56,6 +63,28 @@ export function ChatWindow({
     const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const val = e.target.value;
         setInputValue(val);
+
+        // Typing event logic
+        if (val.trim()) {
+            if (!isTypingRef.current) {
+                isTypingRef.current = true;
+                onTypingChange?.(true);
+            }
+            if (stopTypingTimer.current) clearTimeout(stopTypingTimer.current);
+            stopTypingTimer.current = setTimeout(() => {
+                isTypingRef.current = false;
+                onTypingChange?.(false);
+            }, 2000);
+        } else {
+            if (isTypingRef.current) {
+                isTypingRef.current = false;
+                onTypingChange?.(false);
+            }
+            if (stopTypingTimer.current) {
+                clearTimeout(stopTypingTimer.current);
+                stopTypingTimer.current = null;
+            }
+        }
 
         if (val.startsWith("/")) {
             setShowCanned(true);
@@ -100,6 +129,15 @@ export function ChatWindow({
 
     const handleSend = () => {
         if (!inputValue.trim() || !isClaimedByMe) return;
+        // Stop typing before sending
+        if (isTypingRef.current) {
+            isTypingRef.current = false;
+            onTypingChange?.(false);
+        }
+        if (stopTypingTimer.current) {
+            clearTimeout(stopTypingTimer.current);
+            stopTypingTimer.current = null;
+        }
         onSendMessage(inputValue.trim());
         setInputValue("");
         setShowCanned(false);
@@ -283,6 +321,20 @@ export function ChatWindow({
                         </>
                     )}
                     <div ref={feedEndRef} className="h-2" />
+
+                    {/* Visitor typing indicator */}
+                    {isVisitorTyping && (
+                        <div className="flex items-start gap-2 mt-2">
+                            <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-[4px] bg-background border border-border px-3 py-2 text-xs text-muted-foreground shadow-sm w-fit">
+                                <span className="font-medium">Visitor is typing</span>
+                                <span className="flex gap-0.5 items-end h-3">
+                                    <span className="inline-block w-1 h-1 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:0ms]" />
+                                    <span className="inline-block w-1 h-1 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:150ms]" />
+                                    <span className="inline-block w-1 h-1 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:300ms]" />
+                                </span>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </ScrollArea>
 

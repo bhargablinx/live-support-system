@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAppSelector } from "@/lib/store/store";
 import { ConversationList } from "@/components/dashboard/conversation-list";
 import { ChatWindow } from "@/components/dashboard/chat-window";
@@ -22,6 +22,8 @@ export default function DashboardPage() {
     const [messages, setMessages] = useState<Record<string, Message[]>>({});
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [onlineVisitors, setOnlineVisitors] = useState<string[]>([]);
+    // Stores the conversationId where the visitor is currently typing (null = no one typing)
+    const [visitorTypingConvoId, setVisitorTypingConvoId] = useState<string | null>(null);
 
     // Store latest conversations in a ref to avoid stale closures in socket event handlers
     const conversationsRef = useRef<Conversation[]>([]);
@@ -32,8 +34,10 @@ export default function DashboardPage() {
     const activeConversation = conversations.find((c) => c.id === selectedId) || null;
     const activeMessages = selectedId ? messages[selectedId] || [] : [];
 
-    // Load initial data
-    const loadConversations = async () => {
+    // Load initial data — wrapped in useCallback so the reference is stable.
+    // Without this, every render creates a new function reference, which triggers
+    // the socket useEffect to reconnect (losing conversation room membership).
+    const loadConversations = useCallback(async () => {
         try {
             const res = await fetchConversations();
             if (res.statusCode === 200 && res.data) {
@@ -49,7 +53,7 @@ export default function DashboardPage() {
         } catch (error) {
             console.error("Failed to load conversations:", error);
         }
-    };
+    }, []); // deps are empty: setConversations / setMessages are stable React setters
 
     // Fetch initial conversations on mount
     useEffect(() => {
@@ -57,17 +61,21 @@ export default function DashboardPage() {
             // eslint-disable-next-line react-hooks/set-state-in-effect
             loadConversations();
         }
-    }, [user]);
+    }, [user, loadConversations]);
 
     // Setup Socket.io real-time connection and event listeners
-    const { sendMessage } = useDashboardSocket({
+    const { sendMessage, sendTypingEvent } = useDashboardSocket({
         conversationsRef,
         setConversations,
         setMessages,
         setOnlineVisitors,
+        setVisitorTyping: setVisitorTypingConvoId,
         loadConversations,
         selectedId,
     });
+
+    // True when the visitor in the currently open conversation is typing
+    const isVisitorTyping = visitorTypingConvoId === selectedId && selectedId !== null;
 
     // Claim conversation action
     const handleClaim = async () => {
@@ -169,6 +177,8 @@ export default function DashboardPage() {
                     onClaim={handleClaim}
                     onDelete={handleDelete}
                     isOnline={activeConversation ? onlineVisitors.includes(activeConversation.visitorId) : false}
+                    isVisitorTyping={isVisitorTyping}
+                    onTypingChange={sendTypingEvent}
                 />
             </div>
 

@@ -8,6 +8,7 @@ interface UseDashboardSocketProps {
     setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
     setMessages: React.Dispatch<React.SetStateAction<Record<string, Message[]>>>;
     setOnlineVisitors: React.Dispatch<React.SetStateAction<string[]>>;
+    setVisitorTyping: React.Dispatch<React.SetStateAction<string | null>>;
     loadConversations: () => Promise<void>;
     selectedId: string | null;
 }
@@ -17,11 +18,17 @@ export function useDashboardSocket({
     setConversations,
     setMessages,
     setOnlineVisitors,
+    setVisitorTyping,
     loadConversations,
     selectedId,
 }: UseDashboardSocketProps) {
     const { user } = useAppSelector((state) => state.auth);
     const socketRef = useRef<Socket | null>(null);
+    // Tracks the currently selected conversation so the connect handler can
+    // re-join the room after every (re)connection without a stale closure.
+    const selectedIdRef = useRef<string | null>(selectedId);
+    // Auto-clear timer: mirrors the backend TYPING_TTL of 5s
+    const typingClearTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Setup Socket.io real-time connection
     useEffect(() => {
@@ -37,10 +44,20 @@ export function useDashboardSocket({
 
         socket.on("connect", () => {
             console.log("Socket connected to server:", socket.id);
+            // Re-join conversation room on every (re)connection.
+            // This is critical: if the socket was recreated the join_room useEffect
+            // won't re-fire (selectedId hasn't changed), so we use the ref here.
+            if (selectedIdRef.current) {
+                socket.emit("join_room", { conversationId: selectedIdRef.current });
+            }
         });
 
         // Listen for new messages / org updates
         socket.on("org_message", ({ conversationId, message }: { conversationId: string; message: Message }) => {
+            // Clear typing state when a message arrives from the visitor
+            if (typingClearTimer.current) clearTimeout(typingClearTimer.current);
+            setVisitorTyping(null);
+
             // Append message to state map
             setMessages((prev) => {
                 const list = prev[conversationId] || [];
@@ -111,19 +128,40 @@ export function useDashboardSocket({
             setOnlineVisitors((prev) => prev.filter((id) => id !== visitorId));
         });
 
+        // Listen for typing indicators — only care about visitor actors
+        socket.on("typing_start", ({ actorType, conversationId }: { actorId: string; actorType: string; conversationId: string }) => {
+            if (actorType !== "visitor") return;
+
+            setVisitorTyping(conversationId);
+
+            // Safety-net: auto-clear after 5s to match backend TYPING_TTL
+            if (typingClearTimer.current) clearTimeout(typingClearTimer.current);
+            typingClearTimer.current = setTimeout(() => {
+                setVisitorTyping(null);
+            }, 5000);
+        });
+
+        socket.on("typing_stop", () => {
+            if (typingClearTimer.current) clearTimeout(typingClearTimer.current);
+            setVisitorTyping(null);
+        });
+
         // Listen for disconnect
         socket.on("disconnect", () => {
             console.log("Socket disconnected");
         });
 
         return () => {
+            if (typingClearTimer.current) clearTimeout(typingClearTimer.current);
             socket.disconnect();
             socketRef.current = null;
         };
-    }, [user, setConversations, setMessages, setOnlineVisitors, loadConversations, conversationsRef]);
+    }, [user, setConversations, setMessages, setOnlineVisitors, setVisitorTyping, loadConversations, conversationsRef]);
 
     // Handle joining chat rooms when selecting chats
     useEffect(() => {
+        // Keep the ref current so the connect handler always has the latest id
+        selectedIdRef.current = selectedId;
         if (socketRef.current && selectedId) {
             socketRef.current.emit("join_room", { conversationId: selectedId });
         }
@@ -140,7 +178,17 @@ export function useDashboardSocket({
         });
     };
 
+    // Emit type_start / type_stop for the currently selected conversation
+    const sendTypingEvent = (isTyping: boolean) => {
+        if (!selectedId || !socketRef.current) return;
+        socketRef.current.emit(isTyping ? "type_start" : "type_stop", {
+            conversationId: selectedId,
+        });
+    };
+
     return {
         sendMessage,
+        sendTypingEvent,
     };
 }
+
