@@ -37,4 +37,19 @@ const createConversation = async (organizationId: string, visitorToken: string) 
     }
 }
 
-export { createVisitor, createConversation }
+const fetchMessages = async (conversationId: string, visitorToken: string) => {
+    try {
+        const response = await api.get(
+            `conversation/${conversationId}/visitor-messages?visitorToken=${encodeURIComponent(visitorToken)}`
+        );
+        if (response.data.success) {
+            return response.data.data;
+        }
+        return null;
+    } catch (error) {
+        console.log("Error while fetching messages", error);
+        return null;
+    }
+};
+
+export { createVisitor, createConversation, fetchMessages }

@@ -6,7 +6,7 @@ import type { Message } from "./types/type";
 import type { SocketStatus } from "./types/type";
 import { getSocket } from "./lib/socket";
 import { getFromLocal, saveToLocal } from "./lib/utils";
-import { createConversation } from "./lib/api";
+import { createConversation, fetchMessages } from "./lib/api";
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState } from "./store/store";
 import { setVisitorToken } from "./features/auth/authSlice";
@@ -33,6 +33,7 @@ export default function App() {
             createdAt: new Date().toISOString()
         },
     ]);
+    const [historyLoading, setHistoryLoading] = useState(false);
 
     // Initialize visitorToken from localStorage if available
     useEffect(() => {
@@ -41,6 +42,27 @@ export default function App() {
             dispatch(setVisitorToken(storedToken));
         }
     }, [visitorToken, dispatch]);
+
+    // Load message history when we already have a conversationId from a previous session
+    useEffect(() => {
+        if (!visitorToken || !conversationId) return;
+
+        const loadHistory = async () => {
+            setHistoryLoading(true);
+            try {
+                const history = await fetchMessages(conversationId, visitorToken);
+                if (history && history.length > 0) {
+                    // Replace the welcome placeholder with real DB messages
+                    setMessages(history);
+                }
+                // If no history yet, keep the welcome message as-is
+            } finally {
+                setHistoryLoading(false);
+            }
+        };
+
+        void loadHistory();
+    }, [visitorToken, conversationId]);
 
     // Socket message listening + connection status tracking
     useEffect(() => {
@@ -209,7 +231,7 @@ export default function App() {
             </div>
 
             {/* Chat Window */}
-            <ChatPage open={open} setOpen={setOpen} messages={messages} onSend={handleSend} socketStatus={socketStatus} isResolved={isResolved} isAgentTyping={isAgentTyping} onTypingChange={handleTypingChange} />
+            <ChatPage open={open} setOpen={setOpen} messages={messages} onSend={handleSend} socketStatus={socketStatus} isResolved={isResolved} isAgentTyping={isAgentTyping} onTypingChange={handleTypingChange} historyLoading={historyLoading} />
 
             {/* Floating Button */}
             <Button

@@ -19,6 +19,7 @@ interface ChatPageProps {
     isResolved?: boolean;
     isAgentTyping?: boolean;
     onTypingChange?: (isTyping: boolean) => void;
+    historyLoading?: boolean;
 }
 
 const statusConfig: Record<SocketStatus, { label: string; color: string; pulse: boolean }> = {
@@ -27,7 +28,7 @@ const statusConfig: Record<SocketStatus, { label: string; color: string; pulse: 
     disconnected: { label: "Disconnected", color: "bg-red-500", pulse: false },
 };
 
-export default function ChatPage({ open, setOpen, messages, onSend, socketStatus, isResolved = false, isAgentTyping = false, onTypingChange }: ChatPageProps) {
+export default function ChatPage({ open, setOpen, messages, onSend, socketStatus, isResolved = false, isAgentTyping = false, onTypingChange, historyLoading = false }: ChatPageProps) {
     const { organizationId, visitorToken } = useSelector((state: RootState) => state.auth);
     const dispatch = useDispatch();
     const [name, setName] = useState("");
@@ -148,24 +149,33 @@ export default function ChatPage({ open, setOpen, messages, onSend, socketStatus
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4">
-                {messages.map((message) => {
-                    if (message.senderType === "SYSTEM") {
-                        return (
-                            <div key={message.id} className="mb-4 flex justify-center animate-in fade-in duration-300">
-                                <div className="rounded-full bg-muted/80 px-3 py-1 text-[11px] font-medium text-muted-foreground border shadow-sm">
-                                    {message.content}
+                {historyLoading ? (
+                    <div className="flex h-full items-center justify-center">
+                        <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                            <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                            <span className="text-xs">Loading messages...</span>
+                        </div>
+                    </div>
+                ) : (
+                    messages.map((message) => {
+                        if (message.senderType === "SYSTEM") {
+                            return (
+                                <div key={message.id} className="mb-4 flex justify-center animate-in fade-in duration-300">
+                                    <div className="rounded-full bg-muted/80 px-3 py-1 text-[11px] font-medium text-muted-foreground border shadow-sm">
+                                        {message.content}
+                                    </div>
                                 </div>
-                            </div>
+                            );
+                        }
+                        return (
+                            <ChatBubble
+                                key={message.id}
+                                message={message.content}
+                                isOwn={message.senderType === "VISITOR"}
+                            />
                         );
-                    }
-                    return (
-                        <ChatBubble
-                            key={message.id}
-                            message={message.content}
-                            isOwn={message.senderType === "VISITOR"}
-                        />
-                    );
-                })}
+                    })
+                )}
             </div>
 
             {/* Typing indicator */}
