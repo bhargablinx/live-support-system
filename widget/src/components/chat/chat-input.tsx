@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import type { KeyboardEvent } from "react";
 import { SendHorizontal } from "lucide-react";
 
@@ -7,18 +7,66 @@ import { Textarea } from "@/components/ui/textarea";
 
 interface ChatInputProps {
     onSend: (message: string) => void;
+    onTypingChange?: (isTyping: boolean) => void;
     isLoading?: boolean;
     disabled?: boolean;
 }
 
-export function ChatInput({ onSend, isLoading = false, disabled = false }: ChatInputProps) {
+export function ChatInput({ onSend, onTypingChange, isLoading = false, disabled = false }: ChatInputProps) {
     const [message, setMessage] = useState("");
+    // Track whether we've already emitted type_start so we don't spam
+    const isTypingRef = useRef(false);
+    // Debounce timer to emit type_stop after 2s of inactivity
+    const stopTypingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Clean up timer on unmount
+    useEffect(() => {
+        return () => {
+            if (stopTypingTimer.current) clearTimeout(stopTypingTimer.current);
+        };
+    }, []);
+
+    const emitTypingStart = () => {
+        if (!isTypingRef.current) {
+            isTypingRef.current = true;
+            onTypingChange?.(true);
+        }
+    };
+
+    const emitTypingStop = () => {
+        if (isTypingRef.current) {
+            isTypingRef.current = false;
+            onTypingChange?.(false);
+        }
+        if (stopTypingTimer.current) {
+            clearTimeout(stopTypingTimer.current);
+            stopTypingTimer.current = null;
+        }
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const val = e.target.value;
+        setMessage(val);
+
+        if (val.trim()) {
+            emitTypingStart();
+            // Reset the debounce timer each keystroke
+            if (stopTypingTimer.current) clearTimeout(stopTypingTimer.current);
+            stopTypingTimer.current = setTimeout(() => {
+                emitTypingStop();
+            }, 2000);
+        } else {
+            // Input cleared — stop immediately
+            emitTypingStop();
+        }
+    };
 
     const handleSend = () => {
         const trimmed = message.trim();
-
         if (!trimmed || isLoading || disabled) return;
 
+        // Always stop typing before sending
+        emitTypingStop();
         onSend(trimmed);
         setMessage("");
     };
@@ -35,7 +83,7 @@ export function ChatInput({ onSend, isLoading = false, disabled = false }: ChatI
             <div className="mx-auto flex max-w-4xl items-end gap-3 rounded-2xl border bg-background p-3 shadow-sm">
                 <Textarea
                     value={message}
-                    onChange={(e) => setMessage(e.target.value)}
+                    onChange={handleChange}
                     onKeyDown={handleKeyDown}
                     disabled={disabled}
                     placeholder={disabled ? "This conversation has been resolved." : "Type your message..."}

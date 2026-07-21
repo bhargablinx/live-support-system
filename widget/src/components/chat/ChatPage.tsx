@@ -17,6 +17,8 @@ interface ChatPageProps {
     onSend: (message: string) => void;
     socketStatus: SocketStatus;
     isResolved?: boolean;
+    isAgentTyping?: boolean;
+    onTypingChange?: (isTyping: boolean) => void;
 }
 
 const statusConfig: Record<SocketStatus, { label: string; color: string; pulse: boolean }> = {
@@ -25,7 +27,7 @@ const statusConfig: Record<SocketStatus, { label: string; color: string; pulse: 
     disconnected: { label: "Disconnected", color: "bg-red-500", pulse: false },
 };
 
-export default function ChatPage({ open, setOpen, messages, onSend, socketStatus, isResolved = false }: ChatPageProps) {
+export default function ChatPage({ open, setOpen, messages, onSend, socketStatus, isResolved = false, isAgentTyping = false, onTypingChange }: ChatPageProps) {
     const { organizationId, visitorToken } = useSelector((state: RootState) => state.auth);
     const dispatch = useDispatch();
     const [name, setName] = useState("");
@@ -166,8 +168,22 @@ export default function ChatPage({ open, setOpen, messages, onSend, socketStatus
                 })}
             </div>
 
+            {/* Typing indicator */}
+            {isAgentTyping && (
+                <div className="px-4 pb-1 flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-[4px] bg-background border border-border px-3 py-2 text-xs text-muted-foreground shadow-sm w-fit">
+                        <span className="font-medium">Agent is typing</span>
+                        <span className="flex gap-0.5 items-end h-3">
+                            <span className="inline-block w-1 h-1 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:0ms]" />
+                            <span className="inline-block w-1 h-1 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:150ms]" />
+                            <span className="inline-block w-1 h-1 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:300ms]" />
+                        </span>
+                    </div>
+                </div>
+            )}
+
             {/* Input */}
-            <ChatInput onSend={handleSend} disabled={isResolved} />
+            <ChatInput onSend={handleSend} disabled={isResolved} onTypingChange={onTypingChange} />
         </div>
     );
 }

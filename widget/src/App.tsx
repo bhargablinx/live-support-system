@@ -17,6 +17,7 @@ export default function App() {
     const { organizationId, visitorToken } = useSelector((state: RootState) => state.auth);
     const [conversationId, setConversationId] = useState<string | null>(() => getFromLocal("conversationId"));
     const [isResolved, setIsResolved] = useState(false);
+    const [isAgentTyping, setIsAgentTyping] = useState(false);
     const [socketStatus, setSocketStatus] = useState<SocketStatus>(() => {
         if (!visitorToken) return "disconnected";
         const socket = getSocket(visitorToken);
@@ -129,6 +130,21 @@ export default function App() {
         socket.on("conversation_archived", handleArchived);
         socket.on("conversation_reopened", handleReopened);
 
+        const handleTypingStart = ({ actorType, conversationId: convoId }: { actorId: string; actorType: string; conversationId: string }) => {
+            if (actorType === "agent" && convoId === conversationId) {
+                setIsAgentTyping(true);
+            }
+        };
+
+        const handleTypingStop = ({ conversationId: convoId }: { actorId: string; conversationId: string }) => {
+            if (convoId === conversationId) {
+                setIsAgentTyping(false);
+            }
+        };
+
+        socket.on("typing_start", handleTypingStart);
+        socket.on("typing_stop", handleTypingStop);
+
         return () => {
             socket.off("connect", handleConnect);
             socket.off("disconnect", handleDisconnect);
@@ -138,6 +154,8 @@ export default function App() {
             socket.off("conversation_resolved", handleResolved);
             socket.off("conversation_archived", handleArchived);
             socket.off("conversation_reopened", handleReopened);
+            socket.off("typing_start", handleTypingStart);
+            socket.off("typing_stop", handleTypingStop);
         };
     }, [visitorToken, conversationId]);
 
@@ -173,6 +191,13 @@ export default function App() {
         });
     };
 
+    // Emit type_start / type_stop to the server
+    const handleTypingChange = (isTyping: boolean) => {
+        if (!conversationId || !visitorToken) return;
+        const socket = getSocket(visitorToken);
+        socket.emit(isTyping ? "type_start" : "type_stop", { conversationId });
+    };
+
     return (
         <div className="relative min-h-screen bg-muted/30">
             {/* Your Home Page */}
@@ -184,7 +209,7 @@ export default function App() {
             </div>
 
             {/* Chat Window */}
-            <ChatPage open={open} setOpen={setOpen} messages={messages} onSend={handleSend} socketStatus={socketStatus} isResolved={isResolved} />
+            <ChatPage open={open} setOpen={setOpen} messages={messages} onSend={handleSend} socketStatus={socketStatus} isResolved={isResolved} isAgentTyping={isAgentTyping} onTypingChange={handleTypingChange} />
 
             {/* Floating Button */}
             <Button
