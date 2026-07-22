@@ -4,6 +4,7 @@ import { authenticateSocket } from './authenticateSocket.js';
 import { createAdapter } from "@socket.io/redis-streams-adapter";
 import { redis } from "../redis/redis.js"
 import { presenceService } from "../redis/presence.service.js";
+import { socketMapService } from "../redis/socket-map.service.js";
 
 export function registerSocketHandlers(io: Server) {
     io.use(authenticateSocket);
@@ -15,6 +16,20 @@ export function registerSocketHandlers(io: Server) {
         console.log(`Socket connected: ${socket.id} (${socket.data.type})`);
 
         const { organizationId, type, visitorId, userId } = socket.data;
+
+        if (type === 'visitor' && visitorId) {
+            await socketMapService.register(socket.id, {
+                type: 'visitor',
+                actorId: visitorId,
+                organizationId,
+            });
+        } else if (type === 'agent' && userId) {
+            await socketMapService.register(socket.id, {
+                type: 'agent',
+                actorId: userId,
+                organizationId,
+            });
+        }
 
         // Join organization room to receive broadcasts
         if (organizationId) {
@@ -110,13 +125,24 @@ export function registerSocketHandlers(io: Server) {
             // Stop heartbeat
             clearInterval(heartbeatInterval);
 
-            // ── Presence: mark offline & notify org ──────────────────────────
+            // Remove this socket from the distributed map
+            await socketMapService.unregister(socket.id);
+
+            // ── Presence: mark offline only when ALL tabs are closed ──────────
+            // isConnected() checks the userSockets set AFTER unregister, so it
+            // returns false only when this was the user's last active socket.
             if (organizationId) {
                 if (type === 'visitor' && visitorId) {
-                    await presenceService.setVisitorOffline(visitorId, organizationId);
-                    io.to(`org_${organizationId}`).emit("visitor_offline", { visitorId });
+                    const stillConnected = await socketMapService.isConnected(visitorId);
+                    if (!stillConnected) {
+                        await presenceService.setVisitorOffline(visitorId, organizationId);
+                        io.to(`org_${organizationId}`).emit("visitor_offline", { visitorId });
+                    }
                 } else if (type === 'agent' && userId) {
-                    await presenceService.setAgentOffline(userId, organizationId);
+                    const stillConnected = await socketMapService.isConnected(userId);
+                    if (!stillConnected) {
+                        await presenceService.setAgentOffline(userId, organizationId);
+                    }
                 }
             }
         });

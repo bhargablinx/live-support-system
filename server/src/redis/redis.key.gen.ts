@@ -28,4 +28,11 @@ export const RedisKey = {
     // Organizations
     // Cached organization settings / config
     orgConfig: (orgId: string) => `org:${orgId}:config`,
+
+    // Scaling across multiple server instances
+    // Forward lookup: socket ID → identity
+    socketIdentity: (socketId: string) => `socket:identity:${socketId}`,
+
+    // Reverse lookup: user/visitor → their active socket IDs (a Set, for multi-tab support)
+    userSockets: (actorId: string) => `socket:sockets:${actorId}`,
 } as const;
