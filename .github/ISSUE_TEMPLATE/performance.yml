@@ -1,0 +1,39 @@
+name: Performance Issue
+description: Report slow performance or resource usage problems.
+title: "[Performance]: "
+labels:
+  - performance
+
+body:
+  - type: textarea
+    id: issue
+    attributes:
+      label: Performance Problem
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Performance
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Performance
+
+  - type: textarea
+    id: metrics
+    attributes:
+      label: Metrics
+      description: CPU, Memory, Response Time, Lighthouse score, etc.
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment

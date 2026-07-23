@@ -1,0 +1,38 @@
+name: Enhancement
+description: Improve an existing feature.
+title: "[Enhancement]: "
+labels:
+  - enhancement
+
+body:
+  - type: textarea
+    id: current
+    attributes:
+      label: Current Behavior
+      description: Describe the current implementation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: improvement
+    attributes:
+      label: Proposed Improvement
+      description: Explain what should be improved.
+    validations:
+      required: true
+
+  - type: textarea
+    id: benefit
+    attributes:
+      label: Benefits
+      description: Why is this improvement valuable?
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context

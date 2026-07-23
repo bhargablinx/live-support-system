@@ -1,0 +1,39 @@
+name: Security Report
+description: Report a security vulnerability.
+title: "[Security]: "
+labels:
+  - security
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## ⚠️ Responsible Disclosure
+
+        **Please DO NOT disclose security vulnerabilities publicly.**
+
+        Instead, email:
+
+        **security@example.com**
+
+        Include:
+        - Description
+        - Steps to reproduce
+        - Impact
+        - Proof of Concept (if available)
+
+        Public issues should only be used for non-sensitive security discussions.
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Confirmation
+      options:
+        - label: I confirm this issue does NOT contain sensitive vulnerability details.
+          required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: General security discussion only.

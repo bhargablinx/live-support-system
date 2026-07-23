@@ -1,0 +1,28 @@
+name: Question / Support
+description: Ask a question or request help.
+title: "[Question]: "
+labels:
+  - question
+
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: What Have You Tried?
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Information

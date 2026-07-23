@@ -1,0 +1,39 @@
+name: Chore / Maintenance
+description: Routine maintenance tasks.
+title: "[Chore]: "
+labels:
+  - chore
+
+body:
+  - type: input
+    id: task
+    attributes:
+      label: Task
+      description: Short description.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - Dependencies
+        - CI/CD
+        - Build System
+        - Tooling
+        - Configuration
+        - Repository
+        - Infrastructure
+        - Cleanup
+        - Other
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional Notes
