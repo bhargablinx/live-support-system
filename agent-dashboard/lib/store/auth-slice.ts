@@ -99,6 +99,18 @@ const authSlice = createSlice({
         setLoading: (state, action: PayloadAction<boolean>) => {
             state.loading = action.payload;
         },
+        updateOrgName: (state, action: PayloadAction<string>) => {
+            if (state.organization) {
+                state.organization.name = action.payload;
+            }
+        },
+        resetAuth: (state) => {
+            state.user = null;
+            state.organization = null;
+            state.isAuthenticated = false;
+            state.loading = false;
+            state.error = null;
+        },
     },
     extraReducers: (builder) => {
         // Login
@@ -160,5 +172,5 @@ const authSlice = createSlice({
     },
 });
 
-export const { clearError, setLoading } = authSlice.actions;
+export const { clearError, setLoading, updateOrgName, resetAuth } = authSlice.actions;
 export default authSlice.reducer;

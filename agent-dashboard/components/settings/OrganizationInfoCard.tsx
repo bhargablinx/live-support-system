@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy, Pencil } from "lucide-react";
+import { Check, Copy, Pencil, Loader2 } from "lucide-react";
+import { useAppDispatch } from "@/lib/store/store";
+import { updateOrgName } from "@/lib/store/auth-slice";
+import { updateOrganizationName } from "@/lib/api/org";
+import { OrganizationDetails } from "@/lib/types";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -14,16 +18,19 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function OrganizationInfoCard() {
-    const organization = {
-        id: "org_8F3K29H1LQ",
-        name: "Acme Technologies",
-        totalAgents: 12,
-    };
+interface OrganizationInfoCardProps {
+    organization: OrganizationDetails;
+    isAdmin: boolean;
+    onNameUpdate: (newName: string) => void;
+}
 
+export function OrganizationInfoCard({ organization, isAdmin, onNameUpdate }: OrganizationInfoCardProps) {
+    const dispatch = useAppDispatch();
     const [name, setName] = useState(organization.name);
     const [editing, setEditing] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const hasChanged = name.trim() !== organization.name;
 
@@ -39,11 +46,24 @@ export function OrganizationInfoCard() {
     function handleCancel() {
         setName(organization.name);
         setEditing(false);
+        setError(null);
     }
 
-    function handleSave() {
-        // API call later
-        setEditing(false);
+    async function handleSave() {
+        if (!name.trim()) return;
+        setSaving(true);
+        setError(null);
+        try {
+            const res = await updateOrganizationName(name);
+            dispatch(updateOrgName(res.data.name));
+            onNameUpdate(res.data.name);
+            setEditing(false);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (err: any) {
+            setError(err?.response?.data?.message || err?.message || "Failed to update organization name");
+        } finally {
+            setSaving(false);
+        }
     }
 
     return (
@@ -71,6 +91,7 @@ export function OrganizationInfoCard() {
                             variant="outline"
                             size="icon"
                             onClick={handleCopy}
+                            type="button"
                         >
                             {copied ? (
                                 <Check className="h-4 w-4 text-green-600" />
@@ -88,35 +109,52 @@ export function OrganizationInfoCard() {
                     <div className="flex gap-3">
                         <Input
                             value={name}
-                            disabled={!editing}
+                            disabled={!editing || saving}
                             onChange={(e) => setName(e.target.value)}
                         />
 
-                        {!editing && (
+                        {!editing && isAdmin && (
                             <Button
                                 variant="outline"
                                 size="icon"
                                 onClick={() => setEditing(true)}
+                                type="button"
                             >
                                 <Pencil className="h-4 w-4" />
                             </Button>
                         )}
                     </div>
 
+                    {error && (
+                        <p className="text-sm font-medium text-destructive mt-1">
+                            {error}
+                        </p>
+                    )}
+
                     {editing && (
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-2 mt-2">
                             <Button
                                 variant="ghost"
                                 onClick={handleCancel}
+                                disabled={saving}
+                                type="button"
                             >
                                 Cancel
                             </Button>
 
                             <Button
-                                disabled={!hasChanged}
+                                disabled={!hasChanged || saving}
                                 onClick={handleSave}
+                                type="button"
                             >
-                                Save Changes
+                                {saving ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Saving...
+                                    </>
+                                ) : (
+                                    "Save Changes"
+                                )}
                             </Button>
                         </div>
                     )}

@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useAppDispatch } from "@/lib/store/store";
+import { resetAuth } from "@/lib/store/auth-slice";
+import { deleteOrganization } from "@/lib/api/org";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -25,12 +29,34 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function DangerZoneCard() {
-    const organizationName = "Acme Technologies";
+interface DangerZoneCardProps {
+    organizationName: string;
+    isAdmin: boolean;
+}
 
+export function DangerZoneCard({ organizationName, isAdmin }: DangerZoneCardProps) {
+    const router = useRouter();
+    const dispatch = useAppDispatch();
     const [confirmation, setConfirmation] = useState("");
+    const [deleting, setDeleting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    const canDelete = confirmation === organizationName;
+    const canDelete = confirmation === organizationName && !deleting;
+
+    async function handleDelete(e: React.MouseEvent<HTMLButtonElement>) {
+        e.preventDefault();
+        setDeleting(true);
+        setError(null);
+        try {
+            await deleteOrganization();
+            dispatch(resetAuth());
+            router.push("/register");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (err: any) {
+            setError(err?.response?.data?.message || err?.message || "Failed to delete organization");
+            setDeleting(false);
+        }
+    }
 
     return (
         <Card className="border-destructive/40">
@@ -60,11 +86,17 @@ export function DangerZoneCard() {
                             agents, conversations, visitors, analytics, and
                             messages.
                         </p>
+
+                        {!isAdmin && (
+                            <p className="text-xs font-semibold text-destructive">
+                                * Only organization administrators (ADMIN role) can perform this action.
+                            </p>
+                        )}
                     </div>
 
                     <AlertDialog>
                         <AlertDialogTrigger>
-                            <Button variant="destructive">
+                            <Button variant="destructive" disabled={!isAdmin}>
                                 Delete Organization
                             </Button>
                         </AlertDialogTrigger>
@@ -99,20 +131,35 @@ export function DangerZoneCard() {
                                     onChange={(e) =>
                                         setConfirmation(e.target.value)
                                     }
+                                    disabled={deleting}
                                     placeholder={organizationName}
                                 />
                             </div>
 
+                            {error && (
+                                <p className="text-sm font-semibold text-destructive mt-2">
+                                    {error}
+                                </p>
+                            )}
+
                             <AlertDialogFooter>
-                                <AlertDialogCancel>
+                                <AlertDialogCancel disabled={deleting}>
                                     Cancel
                                 </AlertDialogCancel>
 
                                 <AlertDialogAction
                                     disabled={!canDelete}
+                                    onClick={handleDelete}
                                     className="bg-destructive hover:bg-destructive/90"
                                 >
-                                    Delete Permanently
+                                    {deleting ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Deleting...
+                                        </>
+                                    ) : (
+                                        "Delete Permanently"
+                                    )}
                                 </AlertDialogAction>
                             </AlertDialogFooter>
                         </AlertDialogContent>
