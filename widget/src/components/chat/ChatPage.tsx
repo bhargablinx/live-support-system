@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { X, Plus } from "lucide-react";
 import { Button } from "../ui/button";
 import { ChatBubble } from "./chat-bubble";
 import { ChatInput } from "./chat-input";
@@ -20,6 +20,7 @@ interface ChatPageProps {
     isAgentTyping?: boolean;
     onTypingChange?: (isTyping: boolean) => void;
     historyLoading?: boolean;
+    onCreateNewIssue?: () => void;
 }
 
 const statusConfig: Record<SocketStatus, { label: string; color: string; pulse: boolean }> = {
@@ -28,7 +29,7 @@ const statusConfig: Record<SocketStatus, { label: string; color: string; pulse: 
     disconnected: { label: "Disconnected", color: "bg-red-500", pulse: false },
 };
 
-export default function ChatPage({ open, setOpen, messages, onSend, socketStatus, isResolved = false, isAgentTyping = false, onTypingChange, historyLoading = false }: ChatPageProps) {
+export default function ChatPage({ open, setOpen, messages, onSend, socketStatus, isResolved = false, isAgentTyping = false, onTypingChange, historyLoading = false, onCreateNewIssue }: ChatPageProps) {
     const { organizationId, visitorToken } = useSelector((state: RootState) => state.auth);
     const dispatch = useDispatch();
     const [name, setName] = useState("");
@@ -193,7 +194,20 @@ export default function ChatPage({ open, setOpen, messages, onSend, socketStatus
             )}
 
             {/* Input */}
-            <ChatInput onSend={handleSend} disabled={isResolved} onTypingChange={onTypingChange} />
+            {isResolved ? (
+                <div className="border-t bg-background p-4 flex flex-col items-center justify-center gap-3 animate-in slide-in-from-bottom duration-300">
+                    <p className="text-sm text-muted-foreground font-medium">Your issue has been resolved.</p>
+                    <Button 
+                        onClick={onCreateNewIssue} 
+                        className="w-full max-w-[280px] font-semibold py-2.5 px-4 bg-primary text-primary-foreground hover:bg-primary/95 rounded-xl shadow-md transition-all duration-200 flex items-center justify-center gap-2"
+                    >
+                        <Plus className="h-4 w-4" />
+                        Create New Issue
+                    </Button>
+                </div>
+            ) : (
+                <ChatInput onSend={handleSend} disabled={false} onTypingChange={onTypingChange} />
+            )}
         </div>
     );
 }

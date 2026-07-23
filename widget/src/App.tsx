@@ -6,7 +6,7 @@ import type { Message } from "./types/type";
 import type { SocketStatus } from "./types/type";
 import { getSocket } from "./lib/socket";
 import { getFromLocal, saveToLocal } from "./lib/utils";
-import { createConversation, fetchMessages, fetchMessagesStatus } from "./lib/api";
+import { createConversation, fetchMessages, fetchLatestConversation } from "./lib/api";
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState } from "./store/store";
 import { setVisitorToken } from "./features/auth/authSlice";
@@ -43,47 +43,79 @@ export default function App() {
         }
     }, [visitorToken, dispatch]);
 
-    // Load message history when we already have a conversationId from a previous session
+    // Sync latest conversation on startup/visitorToken load
     useEffect(() => {
-        if (!visitorToken || !conversationId) return;
+        if (!visitorToken) return;
 
-        const loadHistory = async () => {
+        const syncConversation = async () => {
             setHistoryLoading(true);
             try {
-                const [history, statusData] = await Promise.all([
-                    fetchMessages(conversationId, visitorToken),
-                    fetchMessagesStatus(conversationId, visitorToken)
-                ]);
+                const latestConvo = await fetchLatestConversation(visitorToken);
+                if (latestConvo) {
+                    setConversationId(latestConvo.id);
+                    saveToLocal("conversationId", latestConvo.id);
 
-                if (history && history.length > 0) {
-                    setMessages(history);
-                }
+                    const isConvoResolved = latestConvo.status === "RESOLVED" || latestConvo.status === "ARCHIVED";
+                    setIsResolved(isConvoResolved);
 
-                if (statusData && statusData.isResolved) {
-                    setIsResolved(true);
-                    setMessages((prev) => {
-                        if (prev.some((m) => String(m.id).startsWith("resolved-") || String(m.id).startsWith("archived-"))) return prev;
-                        return [
-                            ...prev,
+                    // Fetch messages
+                    const history = await fetchMessages(latestConvo.id, visitorToken);
+                    if (history && history.length > 0) {
+                        setMessages(history);
+                    } else {
+                        setMessages([
                             {
-                                id: `resolved-${Date.now()}`,
-                                conversationId: conversationId,
-                                content: "🔒 This conversation has been resolved by the agent.",
-                                senderType: "SYSTEM",
-                                createdAt: new Date().toISOString()
+                                id: `welcome-${Date.now()}`,
+                                conversationId: latestConvo.id,
+                                content: "👋 Hi! How can we help you today?",
+                                senderType: "AGENT",
+                                createdAt: latestConvo.createdAt
                             }
-                        ];
-                    });
+                        ]);
+                    }
+
+                    if (isConvoResolved) {
+                        setMessages((prev) => {
+                            const systemText = latestConvo.status === "RESOLVED"
+                                ? "🔒 This conversation has been resolved by the agent."
+                                : "🔒 This conversation has been archived due to inactivity.";
+                            const systemMsgId = `${latestConvo.status.toLowerCase()}-${Date.now()}`;
+                            if (prev.some((m) => String(m.id).startsWith("resolved-") || String(m.id).startsWith("archived-"))) return prev;
+                            return [
+                                ...prev,
+                                {
+                                    id: systemMsgId,
+                                    conversationId: latestConvo.id,
+                                    content: systemText,
+                                    senderType: "SYSTEM",
+                                    createdAt: new Date().toISOString()
+                                }
+                            ];
+                        });
+                    }
                 } else {
+                    setConversationId(null);
+                    localStorage.removeItem("conversationId");
                     setIsResolved(false);
+                    setMessages([
+                        {
+                            id: 1,
+                            conversationId: "welcome",
+                            content: "👋 Hi! How can we help you today?",
+                            senderType: "AGENT",
+                            createdAt: new Date().toISOString()
+                        },
+                    ]);
                 }
+            } catch (err) {
+                console.error("Error syncing conversation:", err);
             } finally {
                 setHistoryLoading(false);
             }
         };
 
-        void loadHistory();
-    }, [visitorToken, conversationId]);
+        void syncConversation();
+    }, [visitorToken]);
 
     // Socket message listening + connection status tracking
     useEffect(() => {
@@ -241,6 +273,33 @@ export default function App() {
         socket.emit(isTyping ? "type_start" : "type_stop", { conversationId });
     };
 
+    const handleCreateNewIssue = async () => {
+        if (!visitorToken || !organizationId) return;
+
+        setHistoryLoading(true);
+        try {
+            const res = await createConversation(organizationId, visitorToken);
+            if (res && res.conversationId) {
+                saveToLocal("conversationId", res.conversationId);
+                setConversationId(res.conversationId);
+                setIsResolved(false);
+                setMessages([
+                    {
+                        id: `welcome-${Date.now()}`,
+                        conversationId: res.conversationId,
+                        content: "👋 Hi! How can we help you today?",
+                        senderType: "AGENT",
+                        createdAt: new Date().toISOString()
+                    }
+                ]);
+            }
+        } catch (err) {
+            console.error("Failed to create new conversation", err);
+        } finally {
+            setHistoryLoading(false);
+        }
+    };
+
     return (
         <div className="relative min-h-screen bg-muted/30">
             {/* Your Home Page */}
@@ -252,7 +311,18 @@ export default function App() {
             </div>
 
             {/* Chat Window */}
-            <ChatPage open={open} setOpen={setOpen} messages={messages} onSend={handleSend} socketStatus={socketStatus} isResolved={isResolved} isAgentTyping={isAgentTyping} onTypingChange={handleTypingChange} historyLoading={historyLoading} />
+            <ChatPage
+                open={open}
+                setOpen={setOpen}
+                messages={messages}
+                onSend={handleSend}
+                socketStatus={socketStatus}
+                isResolved={isResolved}
+                isAgentTyping={isAgentTyping}
+                onTypingChange={handleTypingChange}
+                historyLoading={historyLoading}
+                onCreateNewIssue={handleCreateNewIssue}
+            />
 
             {/* Floating Button */}
             <Button

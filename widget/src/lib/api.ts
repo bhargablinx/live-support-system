@@ -70,4 +70,17 @@ const fetchMessagesStatus = async (conversationId: string, visitorToken: string)
     }
 }
 
-export { createVisitor, createConversation, fetchMessages, fetchMessagesStatus }
+const fetchLatestConversation = async (visitorToken: string) => {
+    try {
+        const response = await api.get(`conversation/latest?visitorToken=${encodeURIComponent(visitorToken)}`);
+        if (response.data.success) {
+            return response.data.data;
+        }
+        return null;
+    } catch (error) {
+        console.log("Error while fetching latest conversation", error);
+        return null;
+    }
+}
+
+export { createVisitor, createConversation, fetchMessages, fetchMessagesStatus, fetchLatestConversation }
