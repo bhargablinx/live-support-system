@@ -52,4 +52,20 @@ const fetchMessages = async (conversationId: string, visitorToken: string) => {
     }
 };
 
-export { createVisitor, createConversation, fetchMessages }
+const fetchMessagesStatus = async (conversationId: string, visitorToken: string) => {
+    try {
+        const response = await api.post(`conversation/resolved`, {
+            conversationId,
+            visitorToken
+        });
+        if (response.data.success) {
+            return response.data.data;
+        }
+        return null;
+    } catch (error) {
+        console.log("Error while fetching messages status", error);
+        return null;
+    }
+}
+
+export { createVisitor, createConversation, fetchMessages, fetchMessagesStatus }

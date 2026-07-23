@@ -6,7 +6,7 @@ import type { Message } from "./types/type";
 import type { SocketStatus } from "./types/type";
 import { getSocket } from "./lib/socket";
 import { getFromLocal, saveToLocal } from "./lib/utils";
-import { createConversation, fetchMessages } from "./lib/api";
+import { createConversation, fetchMessages, fetchMessagesStatus } from "./lib/api";
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState } from "./store/store";
 import { setVisitorToken } from "./features/auth/authSlice";
@@ -50,12 +50,33 @@ export default function App() {
         const loadHistory = async () => {
             setHistoryLoading(true);
             try {
-                const history = await fetchMessages(conversationId, visitorToken);
+                const [history, statusData] = await Promise.all([
+                    fetchMessages(conversationId, visitorToken),
+                    fetchMessagesStatus(conversationId, visitorToken)
+                ]);
+
                 if (history && history.length > 0) {
-                    // Replace the welcome placeholder with real DB messages
                     setMessages(history);
                 }
-                // If no history yet, keep the welcome message as-is
+
+                if (statusData && statusData.isResolved) {
+                    setIsResolved(true);
+                    setMessages((prev) => {
+                        if (prev.some((m) => String(m.id).startsWith("resolved-") || String(m.id).startsWith("archived-"))) return prev;
+                        return [
+                            ...prev,
+                            {
+                                id: `resolved-${Date.now()}`,
+                                conversationId: conversationId,
+                                content: "🔒 This conversation has been resolved by the agent.",
+                                senderType: "SYSTEM",
+                                createdAt: new Date().toISOString()
+                            }
+                        ];
+                    });
+                } else {
+                    setIsResolved(false);
+                }
             } finally {
                 setHistoryLoading(false);
             }
