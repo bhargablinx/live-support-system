@@ -201,3 +201,9 @@ export interface AnalyticsData {
     responseTimeData: ResponseTimeDataItem[];
     hourlyData: HourlyTrafficItem[];
 }
+
+export interface OrganizationDetails {
+    id: string;
+    name: string;
+    totalAgents: number;
+}
