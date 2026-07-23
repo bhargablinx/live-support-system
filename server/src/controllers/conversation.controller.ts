@@ -480,14 +480,53 @@ const getVisitorMessages = asyncHandler(async (req: Request, res: Response) => {
     );
 });
 
-export { 
-    createConversation, 
-    getConversations, 
-    claimConversation, 
-    resolveConversation, 
+const isConversationResolved = asyncHandler(async (req: Request, res: Response) => {
+    const { visitorToken, conversationId } = req.body;
+
+    if (!visitorToken || !conversationId) {
+        throw new ApiError({
+            statusCode: 400,
+            message: "visitorToken and conversationId is required",
+            error: "Bad Request",
+        });
+    }
+
+    // Verify this visitor actually owns the conversation
+    const conversation = await prisma.conversation.findFirst({
+        where: {
+            id: conversationId,
+            visitor: { token: visitorToken },
+        },
+    });
+
+    if (!conversation) {
+        throw new ApiError({
+            statusCode: 404,
+            message: "Conversation not found",
+            error: "Not Found",
+        });
+    }
+
+    const isResolved = conversation.status === "RESOLVED" || conversation.status === "ARCHIVED";
+
+    return res.status(200).json(
+        new ApiResponse({
+            statusCode: 200,
+            message: "Conversation resolved status fetched successfully",
+            data: { isResolved },
+        })
+    );
+});
+
+export {
+    createConversation,
+    getConversations,
+    claimConversation,
+    resolveConversation,
     getMessages,
     getVisitorMessages,
-    archiveConversation, 
+    archiveConversation,
     reopenConversation,
-    deleteConversation
+    deleteConversation,
+    isConversationResolved
 }

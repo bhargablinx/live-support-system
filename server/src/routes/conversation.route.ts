@@ -8,7 +8,8 @@ import {
     getVisitorMessages,
     archiveConversation,
     reopenConversation,
-    deleteConversation
+    deleteConversation,
+    isConversationResolved
 } from "../controllers/conversation.controller.js";
 import { verifyJwt, authorizeRole } from "../middleware/auth.middleware.js";
 
@@ -23,5 +24,6 @@ router.post("/:id/reopen", verifyJwt, reopenConversation)
 router.delete("/:id", verifyJwt, authorizeRole("ADMIN"), deleteConversation)
 router.get("/:id/messages", verifyJwt, getMessages)
 router.get("/:id/visitor-messages", getVisitorMessages)
+router.post("/resolved", isConversationResolved)
 
 export default router;
