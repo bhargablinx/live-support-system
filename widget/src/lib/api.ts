@@ -48,6 +48,8 @@ const fetchMessages = async (conversationId: string, visitorToken: string) => {
         return null;
     } catch (error) {
         console.log("Error while fetching messages", error);
+        localStorage.removeItem("conversationId");
+        localStorage.removeItem("visitorToken");
         return null;
     }
 };
