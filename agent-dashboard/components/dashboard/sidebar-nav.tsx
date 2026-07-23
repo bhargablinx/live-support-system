@@ -7,7 +7,8 @@ import {
     MessageSquare,
     Settings,
     Shield,
-    User2
+    User2,
+    CodeXml
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,6 +44,11 @@ export function SidebarNav() {
             icon: User2,
             label: "Manage Agents",
             href: "/dashboard/agents",
+        },
+        {
+            icon: CodeXml,
+            label: "Widget",
+            href: "/dashboard/widget",
         },
         {
             icon: Settings,
