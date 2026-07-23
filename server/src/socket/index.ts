@@ -57,6 +57,13 @@ export function registerSocketHandlers(io: Server) {
         }, 30_000);
 
         socket.on("join_room", ({ conversationId }: { conversationId: string }) => {
+            // Leave any other conversation rooms the socket might be in
+            for (const room of socket.rooms) {
+                if (room !== socket.id && room !== `org_${organizationId}` && room !== conversationId) {
+                    void socket.leave(room);
+                    console.log(`Socket left room: ${room}`);
+                }
+            }
             socket.join(conversationId)
             console.log(`User joined room: ${conversationId}`)
             socket.emit("room_joined", { conversationId });

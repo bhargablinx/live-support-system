@@ -9,7 +9,8 @@ import {
     archiveConversation,
     reopenConversation,
     deleteConversation,
-    isConversationResolved
+    isConversationResolved,
+    getLatestConversation
 } from "../controllers/conversation.controller.js";
 import { verifyJwt, authorizeRole } from "../middleware/auth.middleware.js";
 
@@ -17,6 +18,7 @@ const router = Router()
 
 router.post("/", createConversation)
 router.get("/", verifyJwt, getConversations)
+router.get("/latest", getLatestConversation)
 router.post("/:id/claim", verifyJwt, claimConversation)
 router.post("/:id/resolve", verifyJwt, resolveConversation)
 router.post("/:id/archive", verifyJwt, archiveConversation)

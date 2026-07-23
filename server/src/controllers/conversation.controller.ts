@@ -42,6 +42,29 @@ const createConversation = asyncHandler(async (req: Request, res: Response) => {
             error: "Not Found"
         });
 
+    const activeConversation = await prisma.conversation.findFirst({
+        where: {
+            visitorId: visitor.id,
+            organizationId,
+            status: {
+                notIn: ["RESOLVED", "ARCHIVED"]
+            }
+        }
+    });
+
+    if (activeConversation) {
+        return res.status(200).json(
+            new ApiResponse({
+                statusCode: 200,
+                message: "Active conversation retrieved successfully",
+                data: {
+                    conversationId: activeConversation.id,
+                    visitorId: visitor.id
+                },
+            })
+        );
+    }
+
     const conversation = await prisma.conversation.create({
         data: {
             organizationId,
@@ -518,6 +541,48 @@ const isConversationResolved = asyncHandler(async (req: Request, res: Response) 
     );
 });
 
+const getLatestConversation = asyncHandler(async (req: Request, res: Response) => {
+    const visitorToken = req.query.visitorToken as string;
+
+    if (!visitorToken) {
+        throw new ApiError({
+            statusCode: 400,
+            message: "visitorToken query param is required",
+            error: "Bad Request",
+        });
+    }
+
+    const visitor = await prisma.visitor.findUnique({
+        where: { token: visitorToken }
+    });
+
+    if (!visitor) {
+        throw new ApiError({
+            statusCode: 404,
+            message: "Visitor not found",
+            error: "Not Found",
+        });
+    }
+
+    const latestConversation = await prisma.conversation.findFirst({
+        where: {
+            visitorId: visitor.id,
+            organizationId: visitor.organizationId
+        },
+        orderBy: {
+            createdAt: "desc"
+        }
+    });
+
+    return res.status(200).json(
+        new ApiResponse({
+            statusCode: 200,
+            message: "Latest conversation fetched successfully",
+            data: latestConversation
+        })
+    );
+});
+
 export {
     createConversation,
     getConversations,
@@ -528,5 +593,6 @@ export {
     archiveConversation,
     reopenConversation,
     deleteConversation,
-    isConversationResolved
+    isConversationResolved,
+    getLatestConversation
 }
