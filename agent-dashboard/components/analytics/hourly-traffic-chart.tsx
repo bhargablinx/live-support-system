@@ -18,25 +18,21 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
+import { HourlyTrafficItem } from "@/lib/types";
 
-const data = [
-    { hour: "12 AM", conversations: 8 },
-    { hour: "2 AM", conversations: 4 },
-    { hour: "4 AM", conversations: 2 },
-    { hour: "6 AM", conversations: 10 },
-    { hour: "8 AM", conversations: 28 },
-    { hour: "10 AM", conversations: 52 },
-    { hour: "12 PM", conversations: 74 },
-    { hour: "2 PM", conversations: 68 },
-    { hour: "4 PM", conversations: 61 },
-    { hour: "6 PM", conversations: 47 },
-    { hour: "8 PM", conversations: 33 },
-    { hour: "10 PM", conversations: 18 },
-];
+interface HourlyTrafficChartProps {
+    data: HourlyTrafficItem[];
+}
 
-const maxValue = Math.max(...data.map((d) => d.conversations));
+export default function HourlyTrafficChart({ data }: HourlyTrafficChartProps) {
+    const maxValue = Math.max(...data.map((d) => d.conversations), 0);
 
-export default function HourlyTrafficChart() {
+    // Find the peak hour dynamically
+    const peakEntry = data.reduce((max, entry) => 
+        entry.conversations > (max?.conversations || 0) ? entry : max, 
+        data[0] || { hour: "N/A", conversations: 0 }
+    );
+
     return (
         <Card className="border-border/60 shadow-sm">
             <CardHeader>
@@ -55,7 +51,7 @@ export default function HourlyTrafficChart() {
                         </p>
 
                         <p className="text-2xl font-bold">
-                            12 PM
+                            {peakEntry.hour}
                         </p>
                     </div>
 
@@ -65,7 +61,7 @@ export default function HourlyTrafficChart() {
                         </p>
 
                         <p className="text-2xl font-bold">
-                            74
+                            {peakEntry.conversations}
                         </p>
                     </div>
                 </div>
@@ -103,7 +99,7 @@ export default function HourlyTrafficChart() {
                                     <Cell
                                         key={entry.hour}
                                         fill={
-                                            entry.conversations === maxValue
+                                            entry.conversations === maxValue && maxValue > 0
                                                 ? "var(--primary)"
                                                 : "color-mix(in srgb, var(--primary) 35%, transparent)"
                                         }

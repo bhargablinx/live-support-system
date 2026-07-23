@@ -10,43 +10,31 @@ import {
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { KPIMetric } from "@/lib/types";
 
-const stats = [
-    {
-        title: "Total Conversations",
-        value: "2,438",
-        change: "+12%",
-        positive: true,
-        icon: MessageSquare,
-    },
-    {
-        title: "Avg First Response",
-        value: "2m 14s",
-        change: "-18%",
-        positive: true,
-        icon: Clock3,
-    },
-    {
-        title: "Avg Resolution",
-        value: "8m 51s",
-        change: "+6%",
-        positive: false,
-        icon: CheckCircle2,
-    },
-    {
-        title: "CSAT Score",
-        value: "96.2%",
-        change: "+3%",
-        positive: true,
-        icon: Star,
-    },
-];
+interface KPICardsProps {
+    stats: KPIMetric[];
+}
 
-export default function KPICards() {
+const getIcon = (title: string) => {
+    switch (title) {
+        case "Total Conversations":
+            return MessageSquare;
+        case "Avg First Response":
+            return Clock3;
+        case "Avg Resolution":
+            return CheckCircle2;
+        case "CSAT Score":
+        default:
+            return Star;
+    }
+};
+
+export default function KPICards({ stats }: KPICardsProps) {
     return (
         <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
             {stats.map((item) => {
-                const Icon = item.icon;
+                const Icon = getIcon(item.title);
 
                 return (
                     <Card

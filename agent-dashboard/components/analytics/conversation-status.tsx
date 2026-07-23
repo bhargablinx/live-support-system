@@ -15,28 +15,15 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
+import { StatusDistributionItem } from "@/lib/types";
 
-const data = [
-    {
-        name: "Resolved",
-        value: 1248,
-        color: "#22c55e",
-    },
-    {
-        name: "Open",
-        value: 642,
-        color: "#3b82f6",
-    },
-    {
-        name: "Pending",
-        value: 548,
-        color: "#f59e0b",
-    },
-];
+interface ConversationStatusProps {
+    data: StatusDistributionItem[];
+}
 
-const total = data.reduce((sum, item) => sum + item.value, 0);
+export default function ConversationStatus({ data }: ConversationStatusProps) {
+    const total = data.reduce((sum, item) => sum + item.value, 0);
 
-export default function ConversationStatus() {
     return (
         <Card className="border-border/60 shadow-sm">
             <CardHeader>
@@ -100,7 +87,7 @@ export default function ConversationStatus() {
                                 <p className="font-semibold">{item.value}</p>
 
                                 <p className="text-xs text-muted-foreground">
-                                    {((item.value / total) * 100).toFixed(1)}%
+                                    {total > 0 ? ((item.value / total) * 100).toFixed(1) : 0}%
                                 </p>
                             </div>
                         </div>

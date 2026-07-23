@@ -18,53 +18,19 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
+import { ResponseTimeDataItem } from "@/lib/types";
 
-const data = [
-    {
-        day: "Mon",
-        firstResponse: 2.8,
-        resolution: 11.4,
-    },
-    {
-        day: "Tue",
-        firstResponse: 2.2,
-        resolution: 9.8,
-    },
-    {
-        day: "Wed",
-        firstResponse: 2.4,
-        resolution: 10.6,
-    },
-    {
-        day: "Thu",
-        firstResponse: 1.9,
-        resolution: 8.7,
-    },
-    {
-        day: "Fri",
-        firstResponse: 1.7,
-        resolution: 7.9,
-    },
-    {
-        day: "Sat",
-        firstResponse: 2.1,
-        resolution: 8.4,
-    },
-    {
-        day: "Sun",
-        firstResponse: 2.0,
-        resolution: 8.2,
-    },
-];
+interface ResponseTimeChartProps {
+    data: ResponseTimeDataItem[];
+}
 
-export default function ResponseTimeChart() {
+export default function ResponseTimeChart({ data }: ResponseTimeChartProps) {
     return (
         <Card className="border-border/60 shadow-sm">
             <CardHeader>
-                <CardTitle>Response Time Trend</CardTitle>
-
+                <CardTitle>Response & Resolution Time</CardTitle>
                 <CardDescription>
-                    Average response and resolution time (minutes)
+                    Average first response vs resolution time
                 </CardDescription>
             </CardHeader>
 

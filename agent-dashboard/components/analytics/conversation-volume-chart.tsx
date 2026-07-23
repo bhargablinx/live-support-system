@@ -19,18 +19,13 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
+import { VolumeDataItem } from "@/lib/types";
 
-const data = [
-    { day: "Mon", conversations: 120 },
-    { day: "Tue", conversations: 185 },
-    { day: "Wed", conversations: 165 },
-    { day: "Thu", conversations: 242 },
-    { day: "Fri", conversations: 280 },
-    { day: "Sat", conversations: 205 },
-    { day: "Sun", conversations: 190 },
-];
+interface ConversationVolumeChartProps {
+    data: VolumeDataItem[];
+}
 
-export default function ConversationVolumeChart() {
+export default function ConversationVolumeChart({ data }: ConversationVolumeChartProps) {
     return (
         <Card className="border-border/60 shadow-sm">
             <CardHeader className="flex flex-row items-start justify-between">
