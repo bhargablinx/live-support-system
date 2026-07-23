@@ -163,3 +163,41 @@ export interface AuthState {
     organization: Pick<Organization, "id" | "name"> | null;
     isAuthenticated: boolean;
 }
+
+// API — Analytics
+export interface KPIMetric {
+    title: string;
+    value: string;
+    change: string;
+    positive: boolean;
+}
+
+export interface StatusDistributionItem {
+    name: string;
+    value: number;
+    color: string;
+}
+
+export interface VolumeDataItem {
+    day: string;
+    conversations: number;
+}
+
+export interface ResponseTimeDataItem {
+    day: string;
+    firstResponse: number;
+    resolution: number;
+}
+
+export interface HourlyTrafficItem {
+    hour: string;
+    conversations: number;
+}
+
+export interface AnalyticsData {
+    kpis: KPIMetric[];
+    statusDistribution: StatusDistributionItem[];
+    volumeData: VolumeDataItem[];
+    responseTimeData: ResponseTimeDataItem[];
+    hourlyData: HourlyTrafficItem[];
+}
