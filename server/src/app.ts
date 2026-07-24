@@ -9,6 +9,7 @@ import agentRouter from './routes/agent.route.js'
 import analyticsRouter from "./routes/analytics.route.js"
 import orgRouter from "./routes/org.route.js"
 import { errorHandler } from "./middleware/errorHandler.js";
+import { globalLimiter } from "./middleware/rateLimiter.js";
 
 const app: Express = express();
 
@@ -19,6 +20,9 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded())
 app.use(cookieParser())
+
+// Apply global rate limiting to all API v1 endpoints
+app.use("/api/v1", globalLimiter);
 
 
 // ROUTERS

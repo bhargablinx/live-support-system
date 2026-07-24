@@ -5,6 +5,7 @@ import { createAdapter } from "@socket.io/redis-streams-adapter";
 import { redis } from "../redis/redis.js"
 import { presenceService } from "../redis/presence.service.js";
 import { socketMapService } from "../redis/socket-map.service.js";
+import { checkRateLimit } from "../redis/rate-limiter.service.js";
 
 export function registerSocketHandlers(io: Server) {
     io.use(authenticateSocket);
@@ -56,7 +57,19 @@ export function registerSocketHandlers(io: Server) {
             }
         }, 30_000);
 
-        socket.on("join_room", ({ conversationId }: { conversationId: string }) => {
+        socket.on("join_room", async ({ conversationId }: { conversationId: string }) => {
+            const actorId = type === 'visitor' ? visitorId : userId;
+            if (!actorId || !conversationId) return;
+
+            // Throttling room joining: max 5 times per 5 seconds
+            const check = await checkRateLimit(`ws:join_room:${actorId}`, 5, 5000);
+            if (!check.success) {
+                socket.emit("error_message", {
+                    message: "Too many room changes. Please wait."
+                });
+                return;
+            }
+
             // Leave any other conversation rooms the socket might be in
             for (const room of socket.rooms) {
                 if (room !== socket.id && room !== `org_${organizationId}` && room !== conversationId) {
@@ -73,6 +86,13 @@ export function registerSocketHandlers(io: Server) {
             const actorId = type === "visitor" ? visitorId : userId;
             if (!actorId || !conversationId) return;
 
+            // Throttling typing start notifications: max 1 per 2 seconds
+            const check = await checkRateLimit(`ws:type_start:${actorId}`, 1, 2000);
+            if (!check.success) {
+                // Silently ignore typing notification spam
+                return;
+            }
+
             await presenceService.startTyping(conversationId, actorId, type);
 
             // Broadcast to the conversation room (excluding the sender)
@@ -87,6 +107,12 @@ export function registerSocketHandlers(io: Server) {
             const actorId = type === "visitor" ? visitorId : userId;
             if (!actorId || !conversationId) return;
 
+            // Throttling typing stop notifications: max 1 per 2 seconds
+            const check = await checkRateLimit(`ws:type_stop:${actorId}`, 1, 2000);
+            if (!check.success) {
+                return;
+            }
+
             await presenceService.stopTyping(conversationId, actorId);
 
             socket.to(conversationId).emit("typing_stop", {
@@ -98,9 +124,20 @@ export function registerSocketHandlers(io: Server) {
         socket.on("send_message", async ({ conversationId, content }) => {
             const senderType = socket.data.type === "agent" ? "AGENT" : "VISITOR";
             const actorId = type === "visitor" ? visitorId : userId;
+            if (!actorId) return;
+
+            // Message rate limiting: max 10 messages per 10 seconds
+            const check = await checkRateLimit(`ws:send_message:${actorId}`, 10, 10000);
+            if (!check.success) {
+                socket.emit("error_message", {
+                    message: "You are sending messages too quickly. Please slow down.",
+                    conversationId
+                });
+                return;
+            }
 
             // Clear typing state when message is sent
-            if (actorId) await presenceService.stopTyping(conversationId, actorId);
+            await presenceService.stopTyping(conversationId, actorId);
 
             // Create message and update conversation timestamp
             const [message] = await prisma.$transaction([
