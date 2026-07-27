@@ -29,13 +29,10 @@ export const getClientIp = (req: Request): string => {
     return req.ip || req.socket.remoteAddress || "127.0.0.1";
 };
 
-/**
- * Helper to extract visitor token from headers, body, or query.
- */
 export const getVisitorToken = (req: Request): string | null => {
     return (
-        (req.query.visitorToken as string) ||
-        (req.body.visitorToken as string) ||
+        (req.query?.visitorToken as string) ||
+        (req.body?.visitorToken as string) ||
         (req.headers["x-visitor-token"] as string) ||
         null
     );
@@ -48,7 +45,7 @@ export const getOrganizationId = async (req: Request): Promise<string | null> =>
     if (req.user?.organizationId) {
         return req.user.organizationId;
     }
-    const orgId = req.body.organizationId || req.query.organizationId;
+    const orgId = req.body?.organizationId || req.query?.organizationId;
     if (orgId && typeof orgId === "string") {
         return orgId;
     }
