@@ -5,7 +5,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function saveToLocal(key: string, data) {
+export function saveToLocal(key: string, data: any) {
   window.localStorage.setItem(key, JSON.stringify(data));
 }
 

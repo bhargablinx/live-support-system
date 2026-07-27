@@ -54,11 +54,22 @@ export interface Conversation {
     updatedAt: string;
 }
 
+export interface Attachment {
+    id: string;
+    messageId: string;
+    fileUrl: string;
+    fileName: string;
+    fileType: string;
+    fileSize: number;
+    createdAt: string;
+}
+
 export interface Message {
     id: string;
     conversationId: string;
     content: string;
     senderType: SenderType;
+    attachments?: Attachment[];
     createdAt: string;
 }
 
@@ -147,6 +158,12 @@ export interface JoinRoomPayload {
 export interface SendMessagePayload {
     conversationId: string;
     content: string;
+    attachments?: Array<{
+        fileUrl: string;
+        fileName: string;
+        fileType: string;
+        fileSize: number;
+    }>;
 }
 
 /** Server → Client */

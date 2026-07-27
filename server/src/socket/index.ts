@@ -121,7 +121,20 @@ export function registerSocketHandlers(io: Server) {
             })
         })
 
-        socket.on("send_message", async ({ conversationId, content }) => {
+        socket.on("send_message", async ({ 
+            conversationId, 
+            content, 
+            attachments 
+        }: { 
+            conversationId: string; 
+            content: string; 
+            attachments?: Array<{
+                fileUrl: string;
+                fileName: string;
+                fileType: string;
+                fileSize: number;
+            }>
+        }) => {
             const senderType = socket.data.type === "agent" ? "AGENT" : "VISITOR";
             const actorId = type === "visitor" ? visitorId : userId;
             if (!actorId) return;
@@ -139,10 +152,41 @@ export function registerSocketHandlers(io: Server) {
             // Clear typing state when message is sent
             await presenceService.stopTyping(conversationId, actorId);
 
+            const messageCreateData: {
+                conversationId: string;
+                content: string;
+                senderType: "AGENT" | "VISITOR";
+                attachments?: {
+                    createMany: {
+                        data: Array<{
+                            fileUrl: string;
+                            fileName: string;
+                            fileType: string;
+                            fileSize: number;
+                        }>;
+                    };
+                };
+            } = {
+                conversationId,
+                content,
+                senderType,
+            };
+
+            if (attachments && attachments.length > 0) {
+                messageCreateData.attachments = {
+                    createMany: {
+                        data: attachments
+                    }
+                };
+            }
+
             // Create message and update conversation timestamp
             const [message] = await prisma.$transaction([
                 prisma.message.create({
-                    data: { conversationId, content, senderType },
+                    data: messageCreateData,
+                    include: {
+                        attachments: true
+                    }
                 }),
                 prisma.conversation.update({
                     where: { id: conversationId },

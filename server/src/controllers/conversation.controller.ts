@@ -279,6 +279,9 @@ const getMessages = asyncHandler(async (req: Request, res: Response) => {
         },
         orderBy: {
             createdAt: "asc"
+        },
+        include: {
+            attachments: true
         }
     });
 
@@ -492,6 +495,9 @@ const getVisitorMessages = asyncHandler(async (req: Request, res: Response) => {
     const messages = await prisma.message.findMany({
         where: { conversationId },
         orderBy: { createdAt: "asc" },
+        include: {
+            attachments: true
+        }
     });
 
     return res.status(200).json(

@@ -37,7 +37,7 @@ export function useDashboardSocket({
         // Connect directly to the backend socket server
         const socket = io("http://localhost:8000", {
             withCredentials: true,
-            transports: ["websocket", "polling"],
+            transports: ["polling", "websocket"],
         });
 
         socketRef.current = socket;
@@ -168,13 +168,19 @@ export function useDashboardSocket({
     }, [selectedId]);
 
     // Send a message via Socket.io
-    const sendMessage = (content: string) => {
+    const sendMessage = (content: string, attachments?: Array<{
+        fileUrl: string;
+        fileName: string;
+        fileType: string;
+        fileSize: number;
+    }>) => {
         if (!selectedId || !socketRef.current) return;
 
         // Emit the message via socket
         socketRef.current.emit("send_message", {
             conversationId: selectedId,
             content,
+            attachments,
         });
     };
 

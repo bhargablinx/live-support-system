@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { MessageCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ChatPage from "./components/chat/ChatPage";
-import type { Message } from "./types/type";
-import type { SocketStatus } from "./types/type";
+import type { Message, SocketStatus, Conversation } from "./types/type";
 import { getSocket } from "./lib/socket";
 import { getFromLocal, saveToLocal } from "./lib/utils";
 import { createConversation, fetchMessages, fetchLatestConversation } from "./lib/api";
@@ -123,7 +122,12 @@ export default function App() {
 
         const socket = getSocket(visitorToken);
 
-        const handleConnect = () => setSocketStatus("connected");
+        const handleConnect = () => {
+            setSocketStatus("connected");
+            if (conversationId) {
+                socket.emit("join_room", { conversationId });
+            }
+        };
         const handleDisconnect = () => setSocketStatus("disconnected");
         const handleConnecting = () => setSocketStatus("connecting");
 
@@ -132,7 +136,7 @@ export default function App() {
         socket.on("reconnect_attempt", handleConnecting);
         socket.on("connect_error", handleDisconnect);
 
-        if (conversationId) {
+        if (socket.connected && conversationId) {
             socket.emit("join_room", { conversationId });
         }
 
@@ -144,7 +148,7 @@ export default function App() {
             });
         };
 
-        const handleResolved = (convo) => {
+        const handleResolved = (convo: Conversation) => {
             if (convo.id === conversationId) {
                 setIsResolved(true);
                 setMessages((prev) => {
@@ -164,7 +168,7 @@ export default function App() {
             }
         };
 
-        const handleArchived = (convo) => {
+        const handleArchived = (convo: Conversation) => {
             if (convo.id === conversationId) {
                 setIsResolved(true);
                 setMessages((prev) => {
@@ -184,7 +188,7 @@ export default function App() {
             }
         };
 
-        const handleReopened = (convo) => {
+        const handleReopened = (convo: Conversation) => {
             if (convo.id === conversationId) {
                 setIsResolved(false);
                 setMessages((prev) => [
@@ -234,7 +238,12 @@ export default function App() {
         };
     }, [visitorToken, conversationId]);
 
-    const handleSend = async (message: string) => {
+    const handleSend = async (message: string, attachments?: Array<{
+        fileUrl: string;
+        fileName: string;
+        fileType: string;
+        fileSize: number;
+    }>) => {
         let currentConvoId = conversationId;
 
         if (!currentConvoId) {
@@ -262,7 +271,8 @@ export default function App() {
         const socket = getSocket(visitorToken!);
         socket.emit("send_message", {
             content: message,
-            conversationId: currentConvoId
+            conversationId: currentConvoId,
+            attachments
         });
     };
 
