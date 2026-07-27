@@ -43,7 +43,7 @@ The system is built as a multi-package monorepo consisting of:
 | **AI Assistant** | Smart Suggested Replies | 🔴 Planned | *Not Implemented* | Contextual response recommendations powered by AI |
 | | Ticket Summarization | 🔴 Planned | *Not Implemented* | AI-generated summary of chat history for claimed tickets |
 | | Auto Sentiment/Tagging | 🔴 Planned | *Not Implemented* | Automated conversation tagging and sentiment analysis |
-| **Media Attachments** | File Upload System | 🔴 Planned | *Not Implemented* | Support for sending images, PDFs, or files in the chat thread |
+| **Media Attachments** | File Upload System | 🟢 Complete | `server/src/routes/upload.route.ts`, `server/src/utils/uploadToCloudinary.ts`, `widget/src/components/chat/chat-input.tsx`, `agent-dashboard/components/dashboard/chat-window.tsx` | Support for sending images, PDFs, or files in the chat thread, uploaded via Multer to Cloudinary. |
 
 > **Status Legend**:
 > - 🟢 **Complete**: Fully developed, integrated with database/Redis, and deployed in development.
@@ -88,6 +88,12 @@ High-performance presence manager implemented in [presence.service.ts](file:///h
     *   **Average Resolution Time (RT)**: Time from creation to ticket status change to `RESOLVED` or `ARCHIVED`.
     *   **Volume & Traffic Charts**: Plotted using Recharts showing chat traffic by hour of day and weekly volume trends.
 
+### 6. Cloudinary File Upload & Attachments
+A secure media upload pipeline integrated with Prisma and Cloudinary:
+*   **Upload Route**: `POST /api/v1/upload` accepts single multipart/form-data files via Multer, saves them to a temp directory, and uploads to Cloudinary.
+*   **Database Record**: Successfully uploaded file details are stored in the `Attachment` model linked to the corresponding `Message` inside a Prisma transaction.
+*   **Security Guard**: Upload middleware (`verifyUploadAuth`) ensures only valid active visitors or logged-in agents can access the upload route.
+
 ---
 
 ## 🔮 Backlog & Roadmap
@@ -103,10 +109,5 @@ The following modules represent the next stages of product development:
 *   Currently, canned responses are hardcoded in the frontend.
 *   **Proposed Improvement**: Add a `CannedResponse` model in PostgreSQL, exposing CRUD APIs so administrators can customize shortcuts at the organization level.
 
-### 3. S3 File Upload / Attachments
-*   Add multi-part form support using Multer on the server.
-*   Provide secure file uploads to an AWS S3 bucket or compatible storage.
-*   Update the database schema with an `Attachment` entity linked to `Message`.
-
-### 4. Customer Widget Builder
+### 3. Customer Widget Builder
 *   Provide a UI builder inside the Agent Dashboard where admins can preview changes to the widget widget (colors, titles, default greeting messages) and update settings persisted on the server.

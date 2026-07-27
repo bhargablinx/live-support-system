@@ -18,7 +18,7 @@ All real-time communication flows through the Socket.IO server at `http://localh
 | Event | Payload | Notes |
 |---|---|---|
 | `join_room` | `{ conversationId: string }` | Called after connect. Server calls `socket.join(conversationId)` and acks with `room_joined`. |
-| `send_message` | `{ conversationId: string, content: string }` | Server persists to DB, then broadcasts to the conversation room and `org_<id>`. |
+| `send_message` | `{ conversationId: string, content: string, attachments?: Array<{ fileUrl: string, fileName: string, fileType: string, fileSize: number }> }` | Server persists to DB, then broadcasts to the conversation room and `org_<id>` with attachments. |
 | `type_start` | `{ conversationId: string }` | Declares typing started. Server sets a Redis key `conversation:<id>:typing:<actorId>` with a 5s TTL, then broadcasts `typing_start` to room peers. |
 | `type_stop` | `{ conversationId: string }` | Declares typing stopped. Server deletes the Redis typing key, then broadcasts `typing_stop` to room peers. |
 
@@ -30,8 +30,9 @@ All real-time communication flows through the Socket.IO server at `http://localh
 
 | Event | Payload | Target | Notes |
 |---|---|---|---|
-| `receive_message` | `{ id, conversationId, content, senderType, createdAt }` | Conversation room + sender socket | Broadcast after DB persist. Sender **also** receives its own message back (with the real DB-generated `id` and `createdAt`). |
+| `receive_message` | `{ id, conversationId, content, senderType, attachments: Array<Attachment>, createdAt }` | Conversation room + sender socket | Broadcast after DB persist. Sender **also** receives its own message back (with the real DB-generated `id`, `createdAt`, and attachments list). |
 | `room_joined` | `{ conversationId }` | Sender socket only | Ack for `join_room`. |
+| `error_message` | `{ message: string, conversationId?: string }` | Sender socket only | Emitted when rate limits (throttles) for sending messages or changing rooms are exceeded. |
 
 ### Org-wide Broadcast Events
 
