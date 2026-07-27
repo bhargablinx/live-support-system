@@ -20,9 +20,6 @@
         "skipLibCheck": true
     },
     "include": [
-        "src/**/*",
-        "generated",
-        "generated",
-        "generated"
+        "src/**/*"
     ]
 }
