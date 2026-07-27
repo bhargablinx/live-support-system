@@ -122,7 +122,12 @@ export default function App() {
 
         const socket = getSocket(visitorToken);
 
-        const handleConnect = () => setSocketStatus("connected");
+        const handleConnect = () => {
+            setSocketStatus("connected");
+            if (conversationId) {
+                socket.emit("join_room", { conversationId });
+            }
+        };
         const handleDisconnect = () => setSocketStatus("disconnected");
         const handleConnecting = () => setSocketStatus("connecting");
 
@@ -131,7 +136,7 @@ export default function App() {
         socket.on("reconnect_attempt", handleConnecting);
         socket.on("connect_error", handleDisconnect);
 
-        if (conversationId) {
+        if (socket.connected && conversationId) {
             socket.emit("join_room", { conversationId });
         }
 

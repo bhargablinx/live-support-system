@@ -11,13 +11,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Command, CommandList, CommandItem, CommandEmpty, CommandGroup } from "@/components/ui/command";
-import { Send, Smile, Paperclip, MoreHorizontal, Inbox, UserPlus, Bolt, Trash2 } from "lucide-react";
+import { Send, Smile, Paperclip, MoreHorizontal, Inbox, UserPlus, Bolt, Trash2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { uploadFile } from "@/lib/api/upload";
 
 interface ChatWindowProps {
     conversation: Conversation | null;
     messages: Message[];
-    onSendMessage: (content: string) => void;
+    onSendMessage: (content: string, attachments?: Array<{
+        fileUrl: string;
+        fileName: string;
+        fileType: string;
+        fileSize: number;
+    }>) => void;
     onClaim?: () => void;
     onDelete?: () => void;
     isOnline?: boolean;
@@ -46,14 +52,36 @@ export function ChatWindow({
     const [inputValue, setInputValue] = useState("");
     const [showCanned, setShowCanned] = useState(false);
     const [filteredCanned, setFilteredCanned] = useState(CANNED_RESPONSES);
+    const [isUploading, setIsUploading] = useState(false);
     const feedEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     // Track whether we've emitted type_start so we don't spam
     const isTypingRef = useRef(false);
     const stopTypingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const isClaimedByMe = conversation?.assignedUserId === user?.id;
     const isUnassigned = conversation?.assignedUserId === null;
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !isClaimedByMe) return;
+
+        setIsUploading(true);
+        try {
+            const res = await uploadFile(file);
+            if (res.statusCode === 200 && res.data) {
+                // Send file attachment immediately as a message
+                onSendMessage("", [res.data]);
+            }
+        } catch (error) {
+            console.error("Failed to upload file:", error);
+            alert("Failed to upload file. Please try again.");
+        } finally {
+            setIsUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+        }
+    };
 
     useEffect(() => {
         feedEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -301,7 +329,35 @@ export function ChatWindow({
                                                     : "bg-background border border-border text-foreground rounded-bl-[4px]"
                                             )}
                                         >
-                                            <p className="leading-relaxed break-words whitespace-pre-wrap">{m.content}</p>
+                                            {m.content && <p className="leading-relaxed break-words whitespace-pre-wrap">{m.content}</p>}
+                                            {m.attachments && m.attachments.length > 0 && (
+                                                <div className="flex flex-col gap-2 mt-1">
+                                                    {m.attachments.map((att) => {
+                                                        const isImg = att.fileType.startsWith("image/");
+                                                        return (
+                                                            <div key={att.id} className="max-w-[280px] rounded-lg overflow-hidden border border-border/50 bg-black/5 dark:bg-white/5">
+                                                                {isImg ? (
+                                                                    <a href={att.fileUrl} target="_blank" rel="noopener noreferrer">
+                                                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                        <img src={att.fileUrl} alt={att.fileName} className="max-h-[200px] object-cover hover:opacity-90 transition-opacity w-full" />
+                                                                    </a>
+                                                                ) : (
+                                                                    <a
+                                                                        href={att.fileUrl}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="flex items-center gap-2 p-2.5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors text-xs font-medium text-inherit"
+                                                                    >
+                                                                        <Paperclip className="h-4 w-4 shrink-0" />
+                                                                        <span className="truncate max-w-[150px]">{att.fileName}</span>
+                                                                        <span className="text-[10px] opacity-60">({Math.round(att.fileSize / 1024)} KB)</span>
+                                                                    </a>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
                                             <span
                                                 suppressHydrationWarning
                                                 className={cn(
@@ -382,8 +438,22 @@ export function ChatWindow({
 
                     <div className="flex items-center justify-between px-3 pb-2 pt-1">
                         <div className="flex items-center gap-1">
-                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" disabled={!isClaimedByMe}>
-                                <Paperclip className="h-4 w-4" />
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleFileChange}
+                                className="hidden"
+                                disabled={!isClaimedByMe || isUploading}
+                            />
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground"
+                                disabled={!isClaimedByMe || isUploading}
+                                onClick={() => fileInputRef.current?.click()}
+                            >
+                                {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
                             </Button>
                             <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" disabled={!isClaimedByMe}>
                                 <Smile className="h-4 w-4" />
