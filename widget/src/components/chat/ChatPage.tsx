@@ -3,7 +3,7 @@ import { Button } from "../ui/button";
 import { ChatBubble } from "./chat-bubble";
 import { ChatInput } from "./chat-input";
 import type { Message, SocketStatus } from "../../types/type";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { createVisitor } from "@/lib/api";
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState } from "@/store/store";
@@ -40,6 +40,14 @@ export default function ChatPage({ open, setOpen, messages, onSend, socketStatus
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (open) {
+            messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [messages, open]);
 
     const handleSend = (message: string, attachments?: Array<{
         fileUrl: string;
@@ -168,25 +176,28 @@ export default function ChatPage({ open, setOpen, messages, onSend, socketStatus
                         </div>
                     </div>
                 ) : (
-                    messages.map((message) => {
-                        if (message.senderType === "SYSTEM") {
-                            return (
-                                <div key={message.id} className="mb-4 flex justify-center animate-in fade-in duration-300">
-                                    <div className="rounded-full bg-muted/80 px-3 py-1 text-[11px] font-medium text-muted-foreground border shadow-sm">
-                                        {message.content}
+                    <>
+                        {messages.map((message) => {
+                            if (message.senderType === "SYSTEM") {
+                                return (
+                                    <div key={message.id} className="mb-4 flex justify-center animate-in fade-in duration-300">
+                                        <div className="rounded-full bg-muted/80 px-3 py-1 text-[11px] font-medium text-muted-foreground border shadow-sm">
+                                            {message.content}
+                                        </div>
                                     </div>
-                                </div>
+                                );
+                            }
+                            return (
+                                <ChatBubble
+                                    key={message.id}
+                                    message={message.content}
+                                    isOwn={message.senderType === "VISITOR"}
+                                    attachments={message.attachments}
+                                />
                             );
-                        }
-                        return (
-                            <ChatBubble
-                                key={message.id}
-                                message={message.content}
-                                isOwn={message.senderType === "VISITOR"}
-                                attachments={message.attachments}
-                            />
-                        );
-                    })
+                        })}
+                        <div ref={messagesEndRef} />
+                    </>
                 )}
             </div>
 
