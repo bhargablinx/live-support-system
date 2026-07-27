@@ -8,6 +8,7 @@ import conversationRouter from './routes/conversation.route.js'
 import agentRouter from './routes/agent.route.js'
 import analyticsRouter from "./routes/analytics.route.js"
 import orgRouter from "./routes/org.route.js"
+import uploadRouter from "./routes/upload.route.js"
 import { errorHandler } from "./middleware/errorHandler.js";
 import { globalLimiter } from "./middleware/rateLimiter.js";
 
@@ -33,6 +34,7 @@ app.use("/api/v1/conversation", conversationRouter)
 app.use("/api/v1/agents", agentRouter)
 app.use("/api/v1/analytics", analyticsRouter)
 app.use("/api/v1/org", orgRouter)
+app.use("/api/v1/upload", uploadRouter)
 
 
 app.use(errorHandler)
