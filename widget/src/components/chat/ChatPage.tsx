@@ -14,7 +14,12 @@ interface ChatPageProps {
     open: boolean;
     setOpen: (open: boolean) => void;
     messages: Message[];
-    onSend: (message: string) => void;
+    onSend: (message: string, attachments?: Array<{
+        fileUrl: string;
+        fileName: string;
+        fileType: string;
+        fileSize: number;
+    }>) => void;
     socketStatus: SocketStatus;
     isResolved?: boolean;
     isAgentTyping?: boolean;
@@ -36,8 +41,13 @@ export default function ChatPage({ open, setOpen, messages, onSend, socketStatus
     const [email, setEmail] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleSend = (message: string) => {
-        onSend(message);
+    const handleSend = (message: string, attachments?: Array<{
+        fileUrl: string;
+        fileName: string;
+        fileType: string;
+        fileSize: number;
+    }>) => {
+        onSend(message, attachments);
     };
 
     const handleRegisterVisitor = (e: React.FormEvent) => {
@@ -173,6 +183,7 @@ export default function ChatPage({ open, setOpen, messages, onSend, socketStatus
                                 key={message.id}
                                 message={message.content}
                                 isOwn={message.senderType === "VISITOR"}
+                                attachments={message.attachments}
                             />
                         );
                     })

@@ -1,8 +1,19 @@
+export interface Attachment {
+    id: string;
+    messageId: string;
+    fileUrl: string;
+    fileName: string;
+    fileType: string;
+    fileSize: number;
+    createdAt: string;
+}
+
 export interface Message {
     id: string | number;
     conversationId: string;
     content: string;
     senderType: string;
+    attachments?: Attachment[];
     createdAt: string;
 }
 

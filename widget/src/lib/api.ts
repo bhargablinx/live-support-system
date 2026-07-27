@@ -83,4 +83,25 @@ const fetchLatestConversation = async (visitorToken: string) => {
     }
 }
 
-export { createVisitor, createConversation, fetchMessages, fetchMessagesStatus, fetchLatestConversation }
+const uploadFile = async (file: File, visitorToken: string) => {
+    try {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await api.post("upload", formData, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+                "x-visitor-token": visitorToken
+            }
+        });
+        if (response.data.success) {
+            return response.data.data;
+        }
+        return null;
+    } catch (error) {
+        console.log("Error while uploading file", error);
+        return null;
+    }
+}
+
+export { createVisitor, createConversation, fetchMessages, fetchMessagesStatus, fetchLatestConversation, uploadFile }
