@@ -104,4 +104,22 @@ const uploadFile = async (file: File, visitorToken: string) => {
     }
 }
 
-export { createVisitor, createConversation, fetchMessages, fetchMessagesStatus, fetchLatestConversation, uploadFile }
+const submitFeedback = async (conversationId: string, visitorToken: string, rating: number, comment?: string) => {
+    try {
+        const response = await api.post("feedback", {
+            conversationId,
+            visitorToken,
+            rating,
+            comment
+        });
+        if (response.data.success) {
+            return response.data.data;
+        }
+        return null;
+    } catch (error) {
+        console.log("Error while submitting feedback", error);
+        return null;
+    }
+}
+
+export { createVisitor, createConversation, fetchMessages, fetchMessagesStatus, fetchLatestConversation, uploadFile, submitFeedback }

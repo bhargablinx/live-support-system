@@ -1,10 +1,10 @@
-import { X, Plus } from "lucide-react";
+import { X, Plus, Star, CheckCircle } from "lucide-react";
 import { Button } from "../ui/button";
 import { ChatBubble } from "./chat-bubble";
 import { ChatInput } from "./chat-input";
 import type { Message, SocketStatus } from "../../types/type";
 import { useState, useRef, useEffect } from "react";
-import { createVisitor } from "@/lib/api";
+import { createVisitor, submitFeedback } from "@/lib/api";
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState } from "@/store/store";
 import { saveToLocal } from "@/lib/utils";
@@ -22,6 +22,9 @@ interface ChatPageProps {
     }>) => void;
     socketStatus: SocketStatus;
     isResolved?: boolean;
+    conversationId: string | null;
+    feedbackSubmitted?: boolean;
+    onFeedbackSubmitted?: () => void;
     isAgentTyping?: boolean;
     onTypingChange?: (isTyping: boolean) => void;
     historyLoading?: boolean;
@@ -34,7 +37,7 @@ const statusConfig: Record<SocketStatus, { label: string; color: string; pulse: 
     disconnected: { label: "Disconnected", color: "bg-red-500", pulse: false },
 };
 
-export default function ChatPage({ open, setOpen, messages, onSend, socketStatus, isResolved = false, isAgentTyping = false, onTypingChange, historyLoading = false, onCreateNewIssue }: ChatPageProps) {
+export default function ChatPage({ open, setOpen, messages, onSend, socketStatus, isResolved = false, conversationId, feedbackSubmitted = false, onFeedbackSubmitted, isAgentTyping = false, onTypingChange, historyLoading = false, onCreateNewIssue }: ChatPageProps) {
     const { organizationId, visitorToken } = useSelector((state: RootState) => state.auth);
     const dispatch = useDispatch();
     const [name, setName] = useState("");
@@ -215,21 +218,113 @@ export default function ChatPage({ open, setOpen, messages, onSend, socketStatus
                 </div>
             )}
 
-            {/* Input */}
-            {isResolved ? (
-                <div className="border-t bg-background p-4 flex flex-col items-center justify-center gap-3 animate-in slide-in-from-bottom duration-300">
-                    <p className="text-sm text-muted-foreground font-medium">Your issue has been resolved.</p>
-                    <Button 
-                        onClick={onCreateNewIssue} 
-                        className="w-full max-w-[280px] font-semibold py-2.5 px-4 bg-primary text-primary-foreground hover:bg-primary/95 rounded-xl shadow-md transition-all duration-200 flex items-center justify-center gap-2"
-                    >
-                        <Plus className="h-4 w-4" />
-                        Create New Issue
-                    </Button>
-                </div>
-            ) : (
-                <ChatInput onSend={handleSend} disabled={false} onTypingChange={onTypingChange} />
-            )}
+            {/* Footer */}
+            {(() => {
+                if (!isResolved) {
+                    return <ChatInput onSend={handleSend} disabled={false} onTypingChange={onTypingChange} />;
+                }
+
+                if (!feedbackSubmitted && conversationId) {
+                    return (
+                        <FeedbackForm
+                            conversationId={conversationId}
+                            visitorToken={visitorToken || ""}
+                            onSubmitSuccess={onFeedbackSubmitted || (() => { })}
+                        />
+                    );
+                }
+
+                return (
+                    <div className="border-t bg-background p-5 flex flex-col items-center justify-center gap-3 animate-in slide-in-from-bottom duration-300">
+                        <div className="flex flex-col items-center gap-1.5 text-center">
+                            <CheckCircle className="h-8 w-8 text-green-500 animate-bounce" />
+                            <p className="text-sm font-semibold text-foreground">Thank you for your feedback!</p>
+                            <p className="text-xs text-muted-foreground">Your response helps us improve our service.</p>
+                        </div>
+                        <Button
+                            onClick={onCreateNewIssue}
+                            className="w-full max-w-[280px] font-semibold py-2.5 px-4 bg-primary text-primary-foreground hover:bg-primary/95 rounded-xl shadow-md transition-all duration-200 flex items-center justify-center gap-2 mt-2"
+                        >
+                            <Plus className="h-4 w-4" />
+                            Create New Issue
+                        </Button>
+                    </div>
+                );
+            })()}
         </div>
+    );
+}
+
+interface FeedbackFormProps {
+    conversationId: string;
+    visitorToken: string;
+    onSubmitSuccess: () => void;
+}
+
+function FeedbackForm({ conversationId, visitorToken, onSubmitSuccess }: FeedbackFormProps) {
+    const [rating, setRating] = useState(5);
+    const [hoverRating, setHoverRating] = useState<number | null>(null);
+    const [comment, setComment] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSubmitting(true);
+        setError(null);
+        try {
+            const res = await submitFeedback(conversationId, visitorToken, rating, comment);
+            if (res) {
+                onSubmitSuccess();
+            } else {
+                setError("Failed to submit feedback. Please try again.");
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to submit feedback. Please try again.");
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="border-t bg-background p-4 flex flex-col gap-3 animate-in slide-in-from-bottom duration-300">
+            <div className="text-center">
+                <p className="text-sm font-semibold text-foreground">How was your support experience?</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Please rate your conversation</p>
+            </div>
+
+            <div className="flex justify-center gap-1.5 my-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                        key={star}
+                        type="button"
+                        onClick={() => setRating(star)}
+                        onMouseEnter={() => setHoverRating(star)}
+                        onMouseLeave={() => setHoverRating(null)}
+                        className="p-1 focus:outline-none transition-transform hover:scale-110 active:scale-95"
+                    >
+                        <Star
+                            className={`h-7 w-7 transition-colors duration-150 ${star <= (hoverRating ?? rating)
+                                ? "text-yellow-400 fill-yellow-400"
+                                : "text-muted-foreground/30"
+                                }`}
+                        />
+                    </button>
+                ))}
+            </div>
+
+            <textarea
+                placeholder="Leave an optional comment..."
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                className="w-full min-h-[60px] max-h-[120px] rounded-lg border border-input bg-background/50 p-2.5 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary resize-none leading-relaxed"
+            />
+
+            {error && <p className="text-[10px] text-destructive text-center font-medium">{error}</p>}
+
+            <Button type="submit" disabled={submitting} className="w-full font-semibold h-9 rounded-lg">
+                {submitting ? "Submitting..." : "Submit Feedback"}
+            </Button>
+        </form>
     );
 }
