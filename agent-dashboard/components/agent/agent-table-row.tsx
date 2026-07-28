@@ -79,7 +79,7 @@ export function AgentTableRow({
             </TableCell>
 
             {/* Joined date */}
-            <TableCell className="text-muted-foreground">
+            <TableCell suppressHydrationWarning className="text-muted-foreground">
                 {formatDate(agent.createdAt)}
             </TableCell>
 
