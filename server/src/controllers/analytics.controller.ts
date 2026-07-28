@@ -100,12 +100,32 @@ export const getAnalytics = asyncHandler(async (req: Request, res: Response) => 
         rtChangePercent = Math.round(((currentTimes.avgRt - lastWeekTimes.avgRt) / lastWeekTimes.avgRt) * 100);
     }
 
-    // CSAT calculation (mock/deterministic based on resolved tickets ratio)
-    const resolvedCount = conversations.filter(c => c.status === "RESOLVED" || c.status === "ARCHIVED").length;
-    const openCount = conversations.filter(c => c.status === "CLAIMED" || c.status === "ACTIVE").length;
-    const csatScore = resolvedCount > 0
-        ? Math.min(100, Math.round((resolvedCount / (resolvedCount + openCount * 0.3)) * 1000) / 10)
-        : 95.0;
+    // Real CSAT calculation using Feedback ratings (1-5)
+    // CSAT Score = percentage of ratings that are 4 or 5 stars.
+    const feedbacks = await prisma.feedback.findMany({
+        where: { organizationId }
+    });
+
+    const totalRatingsCount = feedbacks.length;
+    const positiveRatingsCount = feedbacks.filter((f: any) => f.rating >= 4).length;
+    const csatScore = totalRatingsCount > 0
+        ? Math.round((positiveRatingsCount / totalRatingsCount) * 100)
+        : 100; // Fallback to 100% when no feedback has been submitted yet
+
+    // Compute week-over-week changes
+    const currentWeekFeedbacks = feedbacks.filter((f: any) => f.createdAt >= sevenDaysAgo);
+    const lastWeekFeedbacks = feedbacks.filter((f: any) => f.createdAt >= fourteenDaysAgo && f.createdAt < sevenDaysAgo);
+
+    const currentCsat = currentWeekFeedbacks.length > 0
+        ? (currentWeekFeedbacks.filter((f: any) => f.rating >= 4).length / currentWeekFeedbacks.length) * 100
+        : 100;
+
+    const lastCsat = lastWeekFeedbacks.length > 0
+        ? (lastWeekFeedbacks.filter((f: any) => f.rating >= 4).length / lastWeekFeedbacks.length) * 100
+        : 100;
+
+    const csatChange = currentCsat - lastCsat;
+    const csatChangeStr = `${csatChange >= 0 ? "+" : ""}${csatChange.toFixed(1)}%`;
 
     const kpis = [
         {
@@ -129,8 +149,8 @@ export const getAnalytics = asyncHandler(async (req: Request, res: Response) => 
         {
             title: "CSAT Score",
             value: `${csatScore}%`,
-            change: "+1.2%",
-            positive: true,
+            change: csatChangeStr,
+            positive: csatChange >= 0,
         },
     ];
 

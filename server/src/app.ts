@@ -9,13 +9,14 @@ import agentRouter from './routes/agent.route.js'
 import analyticsRouter from "./routes/analytics.route.js"
 import orgRouter from "./routes/org.route.js"
 import uploadRouter from "./routes/upload.route.js"
+import feedbackRouter from "./routes/feedback.route.js"
 import { errorHandler } from "./middleware/errorHandler.js";
 import { globalLimiter } from "./middleware/rateLimiter.js";
 
 const app: Express = express();
 
 app.use(cors({
-    origin: ["http://localhost:5173", "http://127.0.0.1:5173", "http://127.0.0.1:3000", "http://localhost:3000"],
+    origin: ["http://localhost:5173", "http://127.0.0.1:5173", "http://127.0.0.1:3000", "http://127.0.0.1:3000"],
     credentials: true
 }));
 app.use(express.json());
@@ -35,6 +36,7 @@ app.use("/api/v1/agents", agentRouter)
 app.use("/api/v1/analytics", analyticsRouter)
 app.use("/api/v1/org", orgRouter)
 app.use("/api/v1/upload", uploadRouter)
+app.use("/api/v1/feedback", feedbackRouter)
 
 
 app.use(errorHandler)
