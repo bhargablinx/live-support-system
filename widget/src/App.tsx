@@ -16,6 +16,7 @@ export default function App() {
     const { organizationId, visitorToken } = useSelector((state: RootState) => state.auth);
     const [conversationId, setConversationId] = useState<string | null>(() => getFromLocal("conversationId"));
     const [isResolved, setIsResolved] = useState(false);
+    const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
     const [isAgentTyping, setIsAgentTyping] = useState(false);
     const [socketStatus, setSocketStatus] = useState<SocketStatus>(() => {
         if (!visitorToken) return "disconnected";
@@ -56,6 +57,7 @@ export default function App() {
 
                     const isConvoResolved = latestConvo.status === "RESOLVED" || latestConvo.status === "ARCHIVED";
                     setIsResolved(isConvoResolved);
+                    setFeedbackSubmitted(!!latestConvo.feedback);
 
                     // Fetch messages
                     const history = await fetchMessages(latestConvo.id, visitorToken);
@@ -96,6 +98,7 @@ export default function App() {
                     setConversationId(null);
                     localStorage.removeItem("conversationId");
                     setIsResolved(false);
+                    setFeedbackSubmitted(false);
                     setMessages([
                         {
                             id: 1,
@@ -151,6 +154,7 @@ export default function App() {
         const handleResolved = (convo: Conversation) => {
             if (convo.id === conversationId) {
                 setIsResolved(true);
+                setFeedbackSubmitted(false);
                 setMessages((prev) => {
                     const systemMsgId = `resolved-${Date.now()}`;
                     if (prev.some((m) => String(m.id).startsWith("resolved-"))) return prev;
@@ -171,6 +175,7 @@ export default function App() {
         const handleArchived = (convo: Conversation) => {
             if (convo.id === conversationId) {
                 setIsResolved(true);
+                setFeedbackSubmitted(false);
                 setMessages((prev) => {
                     const systemMsgId = `archived-${Date.now()}`;
                     if (prev.some((m) => String(m.id).startsWith("archived-"))) return prev;
@@ -191,6 +196,7 @@ export default function App() {
         const handleReopened = (convo: Conversation) => {
             if (convo.id === conversationId) {
                 setIsResolved(false);
+                setFeedbackSubmitted(false);
                 setMessages((prev) => [
                     ...prev,
                     {
@@ -293,6 +299,7 @@ export default function App() {
                 saveToLocal("conversationId", res.conversationId);
                 setConversationId(res.conversationId);
                 setIsResolved(false);
+                setFeedbackSubmitted(false);
                 setMessages([
                     {
                         id: `welcome-${Date.now()}`,
@@ -328,6 +335,9 @@ export default function App() {
                 onSend={handleSend}
                 socketStatus={socketStatus}
                 isResolved={isResolved}
+                conversationId={conversationId}
+                feedbackSubmitted={feedbackSubmitted}
+                onFeedbackSubmitted={() => setFeedbackSubmitted(true)}
                 isAgentTyping={isAgentTyping}
                 onTypingChange={handleTypingChange}
                 historyLoading={historyLoading}

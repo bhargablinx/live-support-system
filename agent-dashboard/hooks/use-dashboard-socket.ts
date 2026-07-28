@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { io, Socket } from "socket.io-client";
-import { Conversation, Message } from "@/lib/types";
+import { Conversation, Message, Feedback } from "@/lib/types";
 import { useAppSelector } from "@/lib/store/store";
 
 interface UseDashboardSocketProps {
@@ -117,6 +117,17 @@ export function useDashboardSocket({
         // Listen for deleted chats
         socket.on("conversation_deleted", ({ id }: { id: string }) => {
             setConversations((prev) => prev.filter((c) => c.id !== id));
+        });
+
+        // Listen for submitted feedback
+        socket.on("feedback_submitted", ({ conversationId, feedback }: { conversationId: string; feedback: Feedback }) => {
+            setConversations((prev) =>
+                prev.map((c) =>
+                    c.id === conversationId
+                        ? { ...c, feedback }
+                        : c
+                )
+            );
         });
 
         // Listen for presence

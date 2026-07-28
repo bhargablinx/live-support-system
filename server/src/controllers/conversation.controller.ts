@@ -112,7 +112,8 @@ const getConversations = asyncHandler(async (req: Request, res: Response) => {
                 orderBy: {
                     createdAt: "asc"
                 }
-            }
+            },
+            feedback: true
         },
         orderBy: {
             updatedAt: "desc"
@@ -379,6 +380,11 @@ const reopenConversation = asyncHandler(async (req: Request, res: Response) => {
         });
     }
 
+    // Delete any existing feedback if the conversation is reopened
+    await prisma.feedback.deleteMany({
+        where: { conversationId: id }
+    });
+
     const updated = await prisma.conversation.update({
         where: { id },
         data: {
@@ -574,6 +580,9 @@ const getLatestConversation = asyncHandler(async (req: Request, res: Response) =
         where: {
             visitorId: visitor.id,
             organizationId: visitor.organizationId
+        },
+        include: {
+            feedback: true
         },
         orderBy: {
             createdAt: "desc"
