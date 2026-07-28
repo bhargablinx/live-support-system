@@ -4,7 +4,7 @@ import React, { useState, useMemo } from "react";
 import { Conversation } from "@/lib/types";
 import { mockVisitorDetails, VisitorDetail } from "@/lib/mock";
 import { Button } from "@/components/ui/button";
-import { MapPin, Globe, Laptop, Clock, StickyNote, CheckCircle, RefreshCcw, Archive } from "lucide-react";
+import { MapPin, Globe, Laptop, Clock, StickyNote, CheckCircle, RefreshCcw, Archive, Star } from "lucide-react";
 import { Card, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Avatar, AvatarFallback } from "../ui/avatar";
@@ -152,6 +152,44 @@ export function CustomerDetails({ conversation, onResolve, onArchive, onReopen, 
                         </div>
                     </div>
                 </div>
+
+                {/* Customer Feedback */}
+                {conversation.feedback && (
+                    <div className="space-y-3 border-t border-border/60 pt-4">
+                        <h4 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                            <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500" />
+                            Customer Feedback
+                        </h4>
+                        <Card className="bg-muted/40 border border-border shadow-none rounded-xl">
+                            <CardContent className="p-3.5 space-y-2">
+                                <div className="flex items-center gap-1">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <Star
+                                            key={star}
+                                            className={`h-4 w-4 ${star <= conversation.feedback!.rating
+                                                    ? "text-yellow-400 fill-yellow-400"
+                                                    : "text-muted-foreground/20"
+                                                }`}
+                                        />
+                                    ))}
+                                    <span className="text-xs font-semibold ml-1.5 text-foreground">
+                                        {conversation.feedback.rating}/5
+                                    </span>
+                                </div>
+                                {conversation.feedback.comment && (
+                                    <p className="text-xs text-foreground italic leading-relaxed bg-background/50 p-2 rounded-lg border border-border/50">
+                                        &quot;{conversation.feedback.comment}&quot;
+                                    </p>
+                                )}
+                                <p className="text-[10px] text-muted-foreground">
+                                    Submitted on {new Date(conversation.feedback.createdAt).toLocaleDateString([], {
+                                        dateStyle: "medium"
+                                    })}
+                                </p>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
 
                 {/* Notes Editor */}
                 <div className="space-y-3 border-t border-border/60 pt-4">

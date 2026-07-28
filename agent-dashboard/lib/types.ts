@@ -41,6 +41,15 @@ export interface Visitor {
     createdAt: string;
 }
 
+export interface Feedback {
+    id: string;
+    organizationId: string;
+    conversationId: string;
+    rating: number;
+    comment?: string | null;
+    createdAt: string;
+}
+
 export interface Conversation {
     id: string;
     organizationId: string;
@@ -50,6 +59,7 @@ export interface Conversation {
     assignedUser?: User | null;
     status: ConversationStatus;
     messages?: Message[];
+    feedback?: Feedback | null;
     createdAt: string;
     updatedAt: string;
 }
