@@ -3,7 +3,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useAppSelector } from "@/lib/store/store";
 import { Conversation, Message } from "@/lib/types";
-import { mockVisitorDetails } from "@/lib/mock";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -187,9 +186,8 @@ export function ChatWindow({
     }
 
     const dbVisitor = conversation.visitor;
-    const mockVisitor = mockVisitorDetails[conversation.visitorId];
-    const visitorName = mockVisitor?.name || dbVisitor?.name || `Visitor #${conversation.visitorId.slice(-4)}`;
-    const visitorEmail = mockVisitor?.email || dbVisitor?.email || "visitor@example.com";
+    const visitorName = dbVisitor?.name || `Visitor #${conversation.visitorId.slice(-4)}`;
+    const visitorEmail = dbVisitor?.email || "visitor@example.com";
     const avatarChar = visitorName.charAt(0).toUpperCase();
 
     const groupedMessages = messages;
