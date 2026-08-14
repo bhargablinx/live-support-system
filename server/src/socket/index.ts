@@ -70,6 +70,23 @@ export function registerSocketHandlers(io: Server) {
                 return;
             }
 
+            // Verify conversation ownership / access rights
+            const conversation = await prisma.conversation.findFirst({
+                where: {
+                    id: conversationId,
+                    organizationId,
+                    ...(type === 'visitor' ? { visitorId } : {}),
+                }
+            });
+
+            if (!conversation) {
+                socket.emit("error_message", {
+                    message: "Conversation not found or access denied.",
+                    conversationId
+                });
+                return;
+            }
+
             // Leave any other conversation rooms the socket might be in
             for (const room of socket.rooms) {
                 if (room !== socket.id && room !== `org_${organizationId}` && room !== conversationId) {
@@ -137,13 +154,39 @@ export function registerSocketHandlers(io: Server) {
         }) => {
             const senderType = socket.data.type === "agent" ? "AGENT" : "VISITOR";
             const actorId = type === "visitor" ? visitorId : userId;
-            if (!actorId) return;
+            if (!actorId || !conversationId) return;
 
             // Message rate limiting: max 10 messages per 10 seconds
             const check = await checkRateLimit(`ws:send_message:${actorId}`, 10, 10000);
             if (!check.success) {
                 socket.emit("error_message", {
                     message: "You are sending messages too quickly. Please slow down.",
+                    conversationId
+                });
+                return;
+            }
+
+            // Verify conversation ownership and organization boundary
+            const conversation = await prisma.conversation.findFirst({
+                where: {
+                    id: conversationId,
+                    organizationId,
+                    ...(type === 'visitor' ? { visitorId } : {}),
+                }
+            });
+
+            if (!conversation) {
+                socket.emit("error_message", {
+                    message: "Conversation not found or access denied.",
+                    conversationId
+                });
+                return;
+            }
+
+            // Reject messages sent to resolved or archived conversations
+            if (conversation.status === "RESOLVED" || conversation.status === "ARCHIVED") {
+                socket.emit("error_message", {
+                    message: "This conversation is closed.",
                     conversationId
                 });
                 return;
