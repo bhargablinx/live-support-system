@@ -9,6 +9,7 @@ import { Conversation, Message } from "@/lib/types";
 import { useDashboardSocket } from "@/hooks/use-dashboard-socket";
 import {
     fetchConversations,
+    fetchMessages,
     claimConversation,
     resolveConversation,
     archiveConversation,
@@ -35,25 +36,24 @@ export default function DashboardPage() {
     const activeMessages = selectedId ? messages[selectedId] || [] : [];
 
     // Load initial data — wrapped in useCallback so the reference is stable.
-    // Without this, every render creates a new function reference, which triggers
-    // the socket useEffect to reconnect (losing conversation room membership).
     const loadConversations = useCallback(async () => {
         try {
             const res = await fetchConversations();
             if (res.statusCode === 200 && res.data) {
-                setConversations(res.data);
+                const list = Array.isArray(res.data) ? res.data : res.data.conversations || [];
+                setConversations(list);
 
-                // Populate messages state map
+                // Populate messages state map with preview messages
                 const msgMap: Record<string, Message[]> = {};
-                res.data.forEach((c) => {
+                list.forEach((c) => {
                     msgMap[c.id] = c.messages || [];
                 });
-                setMessages(msgMap);
+                setMessages((prev) => ({ ...msgMap, ...prev }));
             }
         } catch (error) {
             console.error("Failed to load conversations:", error);
         }
-    }, []); // deps are empty: setConversations / setMessages are stable React setters
+    }, []);
 
     // Fetch initial conversations on mount
     useEffect(() => {
@@ -62,6 +62,22 @@ export default function DashboardPage() {
             loadConversations();
         }
     }, [user, loadConversations]);
+
+    // Fetch full messages history when a conversation is selected
+    useEffect(() => {
+        if (selectedId) {
+            fetchMessages(selectedId)
+                .then((res) => {
+                    if (res.statusCode === 200 && res.data) {
+                        setMessages((prev) => ({
+                            ...prev,
+                            [selectedId]: res.data,
+                        }));
+                    }
+                })
+                .catch((err) => console.error("Failed to load conversation messages:", err));
+        }
+    }, [selectedId]);
 
     // Setup Socket.io real-time connection and event listeners
     const { sendMessage, sendTypingEvent } = useDashboardSocket({
