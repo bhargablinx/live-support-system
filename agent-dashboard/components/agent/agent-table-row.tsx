@@ -47,14 +47,14 @@ export function AgentTableRow({
                                     : "bg-muted text-muted-foreground"
                             )}
                         >
-                            {getInitials(agent.email)}
+                            {getInitials(agent.name || agent.email)}
                         </AvatarFallback>
                     </Avatar>
                     <div>
-                        <p className="font-medium text-foreground">{agent.email}</p>
-                        {isSelf && (
-                            <p className="text-[11px] text-muted-foreground">You</p>
-                        )}
+                        <p className="font-medium text-foreground">{agent.name || agent.email}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                            {agent.name ? (isSelf ? `${agent.email} • You` : agent.email) : (isSelf ? "You" : "")}
+                        </p>
                     </div>
                 </div>
             </TableCell>

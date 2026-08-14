@@ -6,6 +6,7 @@ import { fetchOrganizationDetails } from "@/lib/api/org";
 import { OrganizationDetails } from "@/lib/types";
 import { DangerZoneCard } from "@/components/settings/DangerZoneCard";
 import { OrganizationInfoCard } from "@/components/settings/OrganizationInfoCard";
+import { ProfileSettingsCard } from "@/components/settings/ProfileSettingsCard";
 import { SettingsHeader } from "@/components/settings/SettingsHeader";
 import { useAppSelector } from "@/lib/store/store";
 
@@ -65,6 +66,8 @@ export default function SettingsPage() {
     return (
         <div className="mx-auto flex max-w-5xl flex-col gap-10 p-6">
             <SettingsHeader />
+
+            {user && <ProfileSettingsCard user={user} />}
 
             <OrganizationInfoCard 
                 organization={orgDetails} 

@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from "react";
 import { Conversation } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { MapPin, Globe, Laptop, Clock, StickyNote, CheckCircle, RefreshCcw, Archive, Star } from "lucide-react";
+import { MapPin, Globe, Laptop, Clock, StickyNote, CheckCircle, RefreshCcw, Archive, Star, UserCheck } from "lucide-react";
 import { Card, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Avatar, AvatarFallback } from "../ui/avatar";
@@ -159,6 +159,18 @@ export function CustomerDetails({ conversation, onResolve, onArchive, onReopen, 
                                 </p>
                             </div>
                         </div>
+
+                        {conversation.assignedUser && (
+                            <div className="flex items-start gap-2.5 text-xs">
+                                <UserCheck className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                                <div>
+                                    <p className="font-semibold text-foreground">Assigned Agent</p>
+                                    <p className="text-muted-foreground mt-0.5 font-medium">
+                                        {conversation.assignedUser.name || conversation.assignedUser.email}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 

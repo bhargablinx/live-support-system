@@ -104,6 +104,11 @@ const authSlice = createSlice({
                 state.organization.name = action.payload;
             }
         },
+        updateUserName: (state, action: PayloadAction<string | null>) => {
+            if (state.user) {
+                state.user.name = action.payload;
+            }
+        },
         resetAuth: (state) => {
             state.user = null;
             state.organization = null;
@@ -172,5 +177,5 @@ const authSlice = createSlice({
     },
 });
 
-export const { clearError, setLoading, updateOrgName, resetAuth } = authSlice.actions;
+export const { clearError, setLoading, updateOrgName, updateUserName, resetAuth } = authSlice.actions;
 export default authSlice.reducer;

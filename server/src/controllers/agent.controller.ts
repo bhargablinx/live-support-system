@@ -25,6 +25,7 @@ const getAgents = asyncHandler(async (req: Request, res: Response) => {
         where: { organizationId },
         select: {
             id: true,
+            name: true,
             email: true,
             role: true,
             createdAt: true,
@@ -70,7 +71,7 @@ const createAgent = asyncHandler(async (req: Request, res: Response) => {
         });
     }
 
-    const { email, password } = req.body;
+    const { email, password, name } = req.body;
 
     if (!email || !password) {
         throw new ApiError({
@@ -98,11 +99,13 @@ const createAgent = asyncHandler(async (req: Request, res: Response) => {
         data: {
             email: email.toLowerCase(),
             passwordHash,
+            name: name || null,
             role: "AGENT",
             organizationId,
         },
         select: {
             id: true,
+            name: true,
             email: true,
             role: true,
             createdAt: true,
@@ -168,4 +171,52 @@ const deleteAgent = asyncHandler(async (req: Request, res: Response) => {
     );
 });
 
-export { getAgents, createAgent, deleteAgent };
+// ------------------------------------------------------------------
+// PATCH /api/v1/agents/profile
+// Updates the display name of the authenticated user.
+// Body: { name: string }
+// Protected: verifyJwt
+// ------------------------------------------------------------------
+const updateProfile = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+
+    if (!userId) {
+        throw new ApiError({
+            statusCode: 401,
+            message: "Unauthorized",
+            error: "Unauthorized",
+        });
+    }
+
+    const { name } = req.body;
+
+    if (name === undefined || typeof name !== "string") {
+        throw new ApiError({
+            statusCode: 400,
+            message: "Name field is required",
+            error: "Bad Request",
+        });
+    }
+
+    const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: { name: name.trim() || null },
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            createdAt: true,
+        },
+    });
+
+    return res.status(200).json(
+        new ApiResponse({
+            statusCode: 200,
+            message: "Profile updated successfully",
+            data: { user: updatedUser },
+        })
+    );
+});
+
+export { getAgents, createAgent, deleteAgent, updateProfile };

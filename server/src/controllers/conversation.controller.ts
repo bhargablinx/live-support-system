@@ -109,6 +109,7 @@ const getConversations = asyncHandler(async (req: Request, res: Response) => {
                 assignedUser: {
                     select: {
                         id: true,
+                        name: true,
                         email: true,
                         role: true,
                         createdAt: true
@@ -196,6 +197,7 @@ const claimConversation = asyncHandler(async (req: Request, res: Response) => {
             assignedUser: {
                 select: {
                     id: true,
+                    name: true,
                     email: true,
                     role: true,
                     createdAt: true
@@ -255,6 +257,7 @@ const resolveConversation = asyncHandler(async (req: Request, res: Response) => 
             assignedUser: {
                 select: {
                     id: true,
+                    name: true,
                     email: true,
                     role: true,
                     createdAt: true
@@ -361,6 +364,7 @@ const archiveConversation = asyncHandler(async (req: Request, res: Response) => 
             assignedUser: {
                 select: {
                     id: true,
+                    name: true,
                     email: true,
                     role: true,
                     createdAt: true
@@ -425,6 +429,7 @@ const reopenConversation = asyncHandler(async (req: Request, res: Response) => {
             assignedUser: {
                 select: {
                     id: true,
+                    name: true,
                     email: true,
                     role: true,
                     createdAt: true
@@ -633,7 +638,16 @@ const getLatestConversation = asyncHandler(async (req: Request, res: Response) =
             organizationId: visitor.organizationId
         },
         include: {
-            feedback: true
+            feedback: true,
+            assignedUser: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    role: true,
+                    createdAt: true
+                }
+            }
         },
         orderBy: {
             createdAt: "desc"

@@ -1,5 +1,5 @@
 import api from "@/lib/axios";
-import { ApiResponse } from "@/lib/types";
+import { ApiResponse, User } from "@/lib/types";
 import { Agent, AgentListResponse, CreateAgentRequest } from "@/lib/types";
 
 export const fetchAgents = async (): Promise<ApiResponse<AgentListResponse>> => {
@@ -16,5 +16,10 @@ export const createAgent = async (
 
 export const deleteAgent = async (agentId: string): Promise<ApiResponse<null>> => {
     const response = await api.delete(`/agents/${agentId}`);
+    return response.data;
+};
+
+export const updateProfile = async (name: string): Promise<ApiResponse<{ user: User }>> => {
+    const response = await api.patch("/agents/profile", { name });
     return response.data;
 };

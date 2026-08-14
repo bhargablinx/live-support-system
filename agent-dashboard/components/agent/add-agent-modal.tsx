@@ -21,6 +21,7 @@ interface AddAgentModalProps {
 
 function AddAgentModal({ open, onOpenChange, onCreated }: AddAgentModalProps) {
 
+    const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [submitting, setSubmitting] = useState(false);
@@ -31,7 +32,8 @@ function AddAgentModal({ open, onOpenChange, onCreated }: AddAgentModalProps) {
         setError(null);
         setSubmitting(true);
         try {
-            await createAgent({ email, password });
+            await createAgent({ email, password, name: name.trim() || undefined });
+            setName("");
             setEmail("");
             setPassword("");
             onOpenChange(false);
@@ -48,6 +50,7 @@ function AddAgentModal({ open, onOpenChange, onCreated }: AddAgentModalProps) {
 
     const handleClose = (v: boolean) => {
         if (!submitting) {
+            setName("");
             setEmail("");
             setPassword("");
             setError(null);
@@ -67,6 +70,19 @@ function AddAgentModal({ open, onOpenChange, onCreated }: AddAgentModalProps) {
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="agent-name">Display Name (Optional)</Label>
+                        <Input
+                            id="agent-name"
+                            type="text"
+                            placeholder="John Doe"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            disabled={submitting}
+                            className="h-10 w-full border border-slate-300 dark:border-slate-700 rounded-md pl-2"
+                        />
+                    </div>
+
                     <div className="space-y-2">
                         <Label htmlFor="agent-email">Email address</Label>
                         <Input

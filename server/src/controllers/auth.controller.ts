@@ -12,7 +12,7 @@ import type { user } from '../utils/types.js';
 
 // Register / Signup
 const register = asyncHandler(async (req: Request, res: Response) => {
-    const { organizationName, email, password } = req.body;
+    const { organizationName, email, password, name } = req.body;
 
     if (!organizationName || !email || !password) {
         throw new ApiError({
@@ -48,6 +48,7 @@ const register = asyncHandler(async (req: Request, res: Response) => {
                 create: {
                     email: email.toLowerCase(),
                     passwordHash: hashedPassword,
+                    name: name || null,
                     role: 'ADMIN'
                 }
             }
@@ -56,6 +57,7 @@ const register = asyncHandler(async (req: Request, res: Response) => {
             users: {
                 select: {
                     id: true,
+                    name: true,
                     email: true,
                     role: true,
                     createdAt: true
@@ -141,6 +143,7 @@ const login = asyncHandler(async (req: Request, res: Response) => {
                     },
                     user: {
                         id: user.id,
+                        name: user.name,
                         email: user.email,
                         role: user.role,
                         createdAt: user.createdAt
@@ -261,6 +264,7 @@ const getMe = asyncHandler(async (req: Request, res: Response) => {
                 },
                 user: {
                     id: user.id,
+                    name: user.name,
                     email: user.email,
                     role: user.role,
                     createdAt: user.createdAt
