@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
+import { extractPublicIdFromUrl, deleteFromCloudinary } from '../utils/uploadToCloudinary.js';
 
 describe('Utility Helper Classes', () => {
   describe('ApiError', () => {
@@ -40,6 +41,30 @@ describe('Utility Helper Classes', () => {
       expect(res.message).toBe('Success');
       expect(res.data).toEqual(payload);
       expect(res.success).toBe(true);
+    });
+  });
+
+  describe('Cloudinary Utilities', () => {
+    it('should correctly extract public_id from Cloudinary URLs', () => {
+      const url1 = 'https://res.cloudinary.com/demo/image/upload/v1573752372/sample.jpg';
+      expect(extractPublicIdFromUrl(url1)).toBe('sample');
+
+      const url2 = 'https://res.cloudinary.com/demo/image/upload/v1573752372/folder/subfolder/file_name.png';
+      expect(extractPublicIdFromUrl(url2)).toBe('folder/subfolder/file_name');
+
+      const url3 = 'https://res.cloudinary.com/demo/raw/upload/attachments/doc.pdf';
+      expect(extractPublicIdFromUrl(url3)).toBe('attachments/doc');
+
+      expect(extractPublicIdFromUrl('')).toBe('');
+      expect(extractPublicIdFromUrl('invalid_url')).toBe('');
+    });
+
+    it('should handle deleteFromCloudinary gracefully when URL is empty or invalid', async () => {
+      const res1 = await deleteFromCloudinary('');
+      expect(res1).toBeNull();
+
+      const res2 = await deleteFromCloudinary('invalid_url');
+      expect(res2).toBeNull();
     });
   });
 });
