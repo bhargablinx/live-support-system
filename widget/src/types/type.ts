@@ -19,9 +19,16 @@ export interface Message {
 
 export type SocketStatus = "connecting" | "connected" | "disconnected";
 
+export interface AssignedUser {
+    id: string;
+    name?: string | null;
+    email: string;
+}
+
 export interface Conversation {
     id: string;
     visitorId: string;
     status: "NEW" | "UNASSIGNED" | "CLAIMED" | "ACTIVE" | "RESOLVED" | "ARCHIVED";
-    lastMessageAt: string | null;
+    lastMessageAt?: string | null;
+    assignedUser?: AssignedUser | null;
 }

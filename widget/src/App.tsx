@@ -15,6 +15,7 @@ export default function App() {
     const dispatch = useDispatch();
     const { organizationId, visitorToken } = useSelector((state: RootState) => state.auth);
     const [conversationId, setConversationId] = useState<string | null>(() => getFromLocal("conversationId"));
+    const [assignedAgentName, setAssignedAgentName] = useState<string | null>(null);
     const [isResolved, setIsResolved] = useState(false);
     const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
     const [isAgentTyping, setIsAgentTyping] = useState(false);
@@ -54,6 +55,12 @@ export default function App() {
                 if (latestConvo) {
                     setConversationId(latestConvo.id);
                     saveToLocal("conversationId", latestConvo.id);
+
+                    if (latestConvo.assignedUser) {
+                        setAssignedAgentName(latestConvo.assignedUser.name || latestConvo.assignedUser.email);
+                    } else {
+                        setAssignedAgentName(null);
+                    }
 
                     const isConvoResolved = latestConvo.status === "RESOLVED" || latestConvo.status === "ARCHIVED";
                     setIsResolved(isConvoResolved);
@@ -210,7 +217,14 @@ export default function App() {
             }
         };
 
+        const handleClaimed = (convo: Conversation) => {
+            if (convo.id === conversationId && convo.assignedUser) {
+                setAssignedAgentName(convo.assignedUser.name || convo.assignedUser.email);
+            }
+        };
+
         socket.on("receive_message", handleReceiveMessage);
+        socket.on("conversation_claimed", handleClaimed);
         socket.on("conversation_resolved", handleResolved);
         socket.on("conversation_archived", handleArchived);
         socket.on("conversation_reopened", handleReopened);
@@ -236,6 +250,7 @@ export default function App() {
             socket.off("reconnect_attempt", handleConnecting);
             socket.off("connect_error", handleDisconnect);
             socket.off("receive_message", handleReceiveMessage);
+            socket.off("conversation_claimed", handleClaimed);
             socket.off("conversation_resolved", handleResolved);
             socket.off("conversation_archived", handleArchived);
             socket.off("conversation_reopened", handleReopened);
@@ -342,6 +357,7 @@ export default function App() {
                 onTypingChange={handleTypingChange}
                 historyLoading={historyLoading}
                 onCreateNewIssue={handleCreateNewIssue}
+                assignedAgentName={assignedAgentName}
             />
 
             {/* Floating Button */}

@@ -29,6 +29,7 @@ interface ChatPageProps {
     onTypingChange?: (isTyping: boolean) => void;
     historyLoading?: boolean;
     onCreateNewIssue?: () => void;
+    assignedAgentName?: string | null;
 }
 
 const statusConfig: Record<SocketStatus, { label: string; color: string; pulse: boolean }> = {
@@ -37,7 +38,7 @@ const statusConfig: Record<SocketStatus, { label: string; color: string; pulse: 
     disconnected: { label: "Disconnected", color: "bg-red-500", pulse: false },
 };
 
-export default function ChatPage({ open, setOpen, messages, onSend, socketStatus, isResolved = false, conversationId, feedbackSubmitted = false, onFeedbackSubmitted, isAgentTyping = false, onTypingChange, historyLoading = false, onCreateNewIssue }: ChatPageProps) {
+export default function ChatPage({ open, setOpen, messages, onSend, socketStatus, isResolved = false, conversationId, feedbackSubmitted = false, onFeedbackSubmitted, isAgentTyping = false, onTypingChange, historyLoading = false, onCreateNewIssue, assignedAgentName }: ChatPageProps) {
     const { organizationId, visitorToken } = useSelector((state: RootState) => state.auth);
     const dispatch = useDispatch();
     const [name, setName] = useState("");
@@ -104,15 +105,15 @@ export default function ChatPage({ open, setOpen, messages, onSend, socketStatus
                     </Button>
                 </div>
 
-                {/* Onboarding Form */}
-                <form onSubmit={handleRegisterVisitor} className="flex-1 flex flex-col justify-center p-6 space-y-4">
-                    <div className="space-y-2 text-center">
-                        <h3 className="text-lg font-bold text-foreground">Welcome!</h3>
-                        <p className="text-xs text-muted-foreground">Please enter your name to start a live support session with our agents.</p>
+                {/* Body */}
+                <form onSubmit={handleRegisterVisitor} className="flex-1 p-6 space-y-4 flex flex-col justify-center">
+                    <div className="space-y-1 text-center mb-2">
+                        <h3 className="text-lg font-bold">Welcome! 👋</h3>
+                        <p className="text-xs text-muted-foreground">Please enter your name and email to start chatting with our support team.</p>
                     </div>
 
-                    <div className="space-y-1.5">
-                        <label htmlFor="name-input" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Your Name</label>
+                    <div className="space-y-2">
+                        <label htmlFor="name-input" className="text-xs font-semibold text-foreground">Your Name</label>
                         <input
                             id="name-input"
                             type="text"
@@ -124,8 +125,8 @@ export default function ChatPage({ open, setOpen, messages, onSend, socketStatus
                         />
                     </div>
 
-                    <div className="space-y-1.5">
-                        <label htmlFor="email-input" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Your Email</label>
+                    <div className="space-y-2">
+                        <label htmlFor="email-input" className="text-xs font-semibold text-foreground">Email Address</label>
                         <input
                             id="email-input"
                             type="email"
@@ -150,7 +151,9 @@ export default function ChatPage({ open, setOpen, messages, onSend, socketStatus
             {/* Header */}
             <div className="flex items-center justify-between border-b bg-primary px-4 py-3 text-primary-foreground">
                 <div>
-                    <h2 className="font-semibold">Support</h2>
+                    <h2 className="font-semibold">
+                        {assignedAgentName ? `Support (${assignedAgentName})` : "Support"}
+                    </h2>
                     <div className="flex items-center gap-1.5 mt-0.5">
                         <span
                             className={`inline-block h-2 w-2 rounded-full ${statusConfig[socketStatus].color} ${statusConfig[socketStatus].pulse ? "animate-pulse" : ""}`}
@@ -208,7 +211,7 @@ export default function ChatPage({ open, setOpen, messages, onSend, socketStatus
             {isAgentTyping && (
                 <div className="px-4 pb-1 flex items-center gap-2">
                     <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-[4px] bg-background border border-border px-3 py-2 text-xs text-muted-foreground shadow-sm w-fit">
-                        <span className="font-medium">Agent is typing</span>
+                        <span className="font-medium">{assignedAgentName ? `${assignedAgentName} is typing` : "Agent is typing"}</span>
                         <span className="flex gap-0.5 items-end h-3">
                             <span className="inline-block w-1 h-1 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:0ms]" />
                             <span className="inline-block w-1 h-1 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:150ms]" />
