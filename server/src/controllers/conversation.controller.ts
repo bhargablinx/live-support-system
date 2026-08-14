@@ -3,6 +3,7 @@ import { asyncHandler } from '../utils/helper.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import type { Request, Response } from 'express';
 import prisma from '../utils/prisma.js';
+import { deleteFromCloudinary } from '../utils/uploadToCloudinary.js';
 
 const createConversation = asyncHandler(async (req: Request, res: Response) => {
 
@@ -445,7 +446,28 @@ const deleteConversation = asyncHandler(async (req: Request, res: Response) => {
         });
     }
 
-    // Delete messages first, then the conversation
+    // 1. Fetch all attachments to clean up from Cloudinary
+    const attachments = await prisma.attachment.findMany({
+        where: {
+            message: {
+                conversationId: id
+            }
+        },
+        select: {
+            fileUrl: true
+        }
+    });
+
+    // 2. Delete files from Cloudinary gracefully
+    for (const attachment of attachments) {
+        if (attachment.fileUrl) {
+            await deleteFromCloudinary(attachment.fileUrl).catch((err) => {
+                console.error(`Failed to delete Cloudinary asset (${attachment.fileUrl}):`, err);
+            });
+        }
+    }
+
+    // 3. Delete messages first, then the conversation
     await prisma.$transaction([
         prisma.message.deleteMany({
             where: { conversationId: id }
