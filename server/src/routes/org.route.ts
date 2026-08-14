@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { getOrganization, updateOrganization, deleteOrganization } from "../controllers/org.controller.js";
 import { verifyJwt, authorizeRole } from "../middleware/auth.middleware.js";
+import { validate } from "../middleware/validate.middleware.js";
+import { updateOrgSchema } from "../validators/org.validator.js";
 
 const router = Router();
 
@@ -8,7 +10,7 @@ const router = Router();
 router.get("/", verifyJwt, getOrganization);
 
 // PATCH/DELETE organization details (ADMIN only)
-router.patch("/", verifyJwt, authorizeRole("ADMIN"), updateOrganization);
+router.patch("/", verifyJwt, authorizeRole("ADMIN"), validate(updateOrgSchema), updateOrganization);
 router.delete("/", verifyJwt, authorizeRole("ADMIN"), deleteOrganization);
 
 export default router;
