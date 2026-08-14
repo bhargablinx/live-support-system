@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
+  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -42,6 +42,7 @@ model User {
   organization   Organization   @relation(fields: [organizationId], references: [id])
   email          String         @unique
   passwordHash   String
+  name           String?
   role           UserRole       @default(AGENT)
   refreshToken   String?
   conversations  Conversation[] @relation("AssignedAgent")
