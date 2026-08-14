@@ -15,12 +15,15 @@ export const getAnalytics = asyncHandler(async (req: Request, res: Response) => 
         });
     }
 
-    // 1. Fetch conversations with their messages in this organization
+    // 1. Fetch conversations with only the first agent response message for response time calculations
     const conversations = await prisma.conversation.findMany({
         where: { organizationId },
         include: {
             messages: {
+                where: { senderType: "AGENT" },
                 orderBy: { createdAt: "asc" },
+                take: 1,
+                select: { createdAt: true, senderType: true }
             },
         },
     });

@@ -1,9 +1,19 @@
 import api from "@/lib/axios";
 import { Conversation, Message, ApiResponse } from "@/lib/types";
 
-export const fetchConversations = async (): Promise<ApiResponse<Conversation[]>> => {
+export interface PaginatedConversations {
+    conversations: Conversation[];
+    pagination: {
+        page: number;
+        limit: number;
+        totalCount: number;
+        totalPages: number;
+    };
+}
+
+export const fetchConversations = async (page = 1, limit = 50): Promise<ApiResponse<PaginatedConversations | Conversation[]>> => {
     try {
-        const response = await api.get("/conversation");
+        const response = await api.get(`/conversation?page=${page}&limit=${limit}`);
         return response.data;
     } catch (error) {
         throw error;

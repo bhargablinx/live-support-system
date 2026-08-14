@@ -95,37 +95,66 @@ const getConversations = asyncHandler(async (req: Request, res: Response) => {
         });
     }
 
-    const conversations = await prisma.conversation.findMany({
-        where: {
-            organizationId: user.organizationId
-        },
-        include: {
-            visitor: true,
-            assignedUser: {
-                select: {
-                    id: true,
-                    email: true,
-                    role: true,
-                    createdAt: true
-                }
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit as string) || 25));
+    const skip = (page - 1) * limit;
+
+    const [conversations, totalCount] = await Promise.all([
+        prisma.conversation.findMany({
+            where: {
+                organizationId: user.organizationId
             },
-            messages: {
-                orderBy: {
-                    createdAt: "asc"
-                }
+            include: {
+                visitor: true,
+                assignedUser: {
+                    select: {
+                        id: true,
+                        email: true,
+                        role: true,
+                        createdAt: true
+                    }
+                },
+                messages: {
+                    orderBy: {
+                        createdAt: "desc"
+                    },
+                    take: 1
+                },
+                feedback: true
             },
-            feedback: true
-        },
-        orderBy: {
-            updatedAt: "desc"
-        }
-    });
+            orderBy: {
+                updatedAt: "desc"
+            },
+            skip,
+            take: limit
+        }),
+        prisma.conversation.count({
+            where: {
+                organizationId: user.organizationId
+            }
+        })
+    ]);
+
+    const formattedConversations = conversations.map(c => ({
+        ...c,
+        messages: c.messages.reverse()
+    }));
+
+    const totalPages = Math.ceil(totalCount / limit);
 
     return res.status(200).json(
         new ApiResponse({
             statusCode: 200,
             message: "Conversations fetched successfully",
-            data: conversations
+            data: {
+                conversations: formattedConversations,
+                pagination: {
+                    page,
+                    limit,
+                    totalCount,
+                    totalPages
+                }
+            }
         })
     );
 });
