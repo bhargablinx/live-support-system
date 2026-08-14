@@ -8,7 +8,7 @@ const router = Router()
 router.post("/register", authLimiter, register)
 router.post("/login", authLimiter, login)
 router.post("/logout", verifyJwt, logout)
-router.get("/refresh-token", verifyJwt, refreshAccessToken)
+router.get("/refresh-token", refreshAccessToken)
 router.get("/me", verifyJwt, getMe)
 
 export default router;
