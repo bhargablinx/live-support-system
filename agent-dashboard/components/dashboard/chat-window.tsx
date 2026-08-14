@@ -221,7 +221,9 @@ export function ChatWindow({
                 <div className="flex items-center gap-4">
                     {conversation.assignedUserId && (
                         <div className="text-xs text-muted-foreground font-medium bg-muted px-2.5 py-1 rounded-md">
-                            {isClaimedByMe ? "Assigned to You" : "Assigned"}
+                            {isClaimedByMe
+                                ? "Assigned to You"
+                                : `Assigned to ${conversation.assignedUser?.name || conversation.assignedUser?.email || "Agent"}`}
                         </div>
                     )}
                     <div className="flex items-center gap-1">

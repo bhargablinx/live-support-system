@@ -23,6 +23,7 @@ export interface Organization {
 export interface User {
     id: string;
     organizationId: string;
+    name?: string | null;
     email: string;
     role: UserRole;
     createdAt: string;
@@ -99,6 +100,7 @@ export interface ApiError {
 // API — Agents
 export interface Agent {
     id: string;
+    name?: string | null;
     email: string;
     role: UserRole;
     createdAt: string;
@@ -119,6 +121,7 @@ export interface AgentListResponse {
 export interface CreateAgentRequest {
     email: string;
     password: string;
+    name?: string;
 }
 
 // API — Auth
