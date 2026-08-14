@@ -35,4 +35,7 @@ export const RedisKey = {
 
     // Reverse lookup: user/visitor → their active socket IDs (a Set, for multi-tab support)
     userSockets: (actorId: string) => `socket:sockets:${actorId}`,
+
+    // Analytics cache
+    analytics: (orgId: string) => `analytics:org:${orgId}`,
 } as const;
