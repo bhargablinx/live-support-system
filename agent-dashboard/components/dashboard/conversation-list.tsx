@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useAppSelector } from "@/lib/store/store";
 import { Conversation, Message } from "@/lib/types";
-import { mockVisitorDetails } from "@/lib/mock";
 import { Search, Inbox, UserCheck, CheckCircle2, RefreshCw, MessageSquareOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
@@ -50,9 +49,8 @@ export function ConversationList({
         // Search query filter (search by visitor name/email/ID or message content)
         if (!searchQuery.trim()) return true;
 
-        const visitorDetail = mockVisitorDetails[c.visitorId];
-        const visitorName = visitorDetail?.name?.toLowerCase() || c.visitor?.name?.toLowerCase() || (c.visitor ? `visitor #${c.visitorId.slice(-4)}` : "visitor");
-        const visitorEmail = visitorDetail?.email?.toLowerCase() || "not provided";
+        const visitorName = c.visitor?.name?.toLowerCase() || (c.visitor ? `visitor #${c.visitorId.slice(-4)}` : "visitor");
+        const visitorEmail = c.visitor?.email?.toLowerCase() || "not provided";
         const query = searchQuery.toLowerCase();
 
         const matchVisitor = visitorName.includes(query) || visitorEmail.includes(query) || c.visitorId.toLowerCase().includes(query);
@@ -190,94 +188,7 @@ export function ConversationList({
             </Tabs>
 
             {/* Chat List Scrollarea */}
-            {/* <div className="flex-1 overflow-y-auto px-2 space-y-1">
-                {filteredConversations.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                        <p className="text-sm text-muted-foreground font-medium">
-                            No conversations found
-                        </p>
-                        <p className="text-xs text-muted-foreground/60 mt-1">
-                            {searchQuery ? "Try checking another query." : "You're all caught up!"}
-                        </p>
-                    </div>
-                ) : (
-                    filteredConversations.map((c) => {
-                        const visitor = mockVisitorDetails[c.visitorId];
-                        const chatMessages = messages[c.id] || [];
-                        const lastMessage = chatMessages[chatMessages.length - 1];
-                        const isSelected = selectedId === c.id;
 
-                        // Calculate relative time
-                        const timeStr = lastMessage
-                            ? new Date(lastMessage.createdAt).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                            })
-                            : new Date(c.createdAt).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                            });
-
-                        return (
-                            <button
-                                key={c.id}
-                                onClick={() => onSelect(c.id)}
-                                className={cn(
-                                    "flex w-full flex-col gap-1.5 rounded-xl p-3.5 text-left border border-transparent transition-all",
-                                    isSelected
-                                        ? "bg-primary text-primary-foreground shadow-md hover:bg-primary/95"
-                                        : "bg-background/40 hover:bg-muted/60 hover:border-border/60"
-                                )}
-                            >
-                                <div className="flex w-full items-center justify-between gap-2">
-                                    <div className="flex items-center gap-2">
-                                        <div
-                                            className={cn(
-                                                "flex h-7 w-7 items-center justify-center rounded-lg font-bold text-xs uppercase",
-                                                isSelected
-                                                    ? "bg-white/20 text-white"
-                                                    : "bg-primary/10 text-primary"
-                                            )}
-                                        >
-                                            {visitor?.name ? visitor.name.charAt(0) : (c.visitor?.name ? c.visitor.name.charAt(0) : (c.visitor ? "#" : <User className="h-4 w-4" />))}
-                                        </div>
-                                        <span className="font-semibold text-sm truncate max-w-[130px]">
-                                            {visitor?.name || c.visitor?.name || (c.visitor ? `Visitor #${c.visitorId.slice(-4)}` : "Visitor")}
-                                        </span>
-                                    </div>
-                                    <span
-                                        suppressHydrationWarning
-                                        className={cn(
-                                            "text-[10px]",
-                                            isSelected ? "text-primary-foreground/75" : "text-muted-foreground"
-                                        )}
-                                    >
-                                        {timeStr}
-                                    </span>
-                                </div>
-
-                                <p
-                                    className={cn(
-                                        "text-xs line-clamp-2",
-                                        isSelected ? "text-primary-foreground/90 font-medium" : "text-muted-foreground"
-                                    )}
-                                >
-                                    {lastMessage ? lastMessage.content : "No messages yet."}
-                                </p>
-
-                                {!isSelected && c.status === "NEW" && (
-                                    <div className="flex w-full items-center justify-end gap-1.5">
-                                        <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-                                        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wide">
-                                            New
-                                        </span>
-                                    </div>
-                                )}
-                            </button>
-                        );
-                    })
-                )}
-            </div> */}
             <ScrollArea className="flex-1">
                 <div className="space-y-1 p-2">
                     {filteredConversations.length === 0 ? (
@@ -298,14 +209,12 @@ export function ConversationList({
                         </div>
                     ) : (
                         filteredConversations.map((c) => {
-                            const visitor = mockVisitorDetails[c.visitorId];
                             const chatMessages = messages[c.id] || [];
                             const lastMessage = chatMessages.at(-1);
 
                             const isSelected = selectedId === c.id;
 
                             const visitorName =
-                                visitor?.name ||
                                 c.visitor?.name ||
                                 (c.visitor
                                     ? `Visitor #${c.visitorId.slice(-4)}`

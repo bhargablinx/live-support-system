@@ -2,12 +2,25 @@
 
 import React, { useState, useMemo } from "react";
 import { Conversation } from "@/lib/types";
-import { mockVisitorDetails, VisitorDetail } from "@/lib/mock";
 import { Button } from "@/components/ui/button";
 import { MapPin, Globe, Laptop, Clock, StickyNote, CheckCircle, RefreshCcw, Archive, Star } from "lucide-react";
 import { Card, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Avatar, AvatarFallback } from "../ui/avatar";
+
+interface VisitorDetail {
+    id: string;
+    organizationId: string;
+    token: string;
+    createdAt: string;
+    name: string;
+    email: string;
+    location: string;
+    currentUrl: string;
+    browser: string;
+    os: string;
+    notes?: string;
+}
 
 interface CustomerDetailsProps {
     conversation: Conversation | null;
@@ -20,10 +33,10 @@ interface CustomerDetailsProps {
 export function CustomerDetails({ conversation, onResolve, onArchive, onReopen, isOnline = false }: CustomerDetailsProps) {
     // Load visitor detail
     const dbVisitor = conversation?.visitor;
-    const mockVisitor = conversation ? mockVisitorDetails[conversation.visitorId] : undefined;
 
     const visitor: VisitorDetail | undefined = useMemo(() => {
-        return mockVisitor || (dbVisitor ? {
+        if (!dbVisitor) return undefined;
+        return {
             id: dbVisitor.id,
             organizationId: dbVisitor.organizationId,
             token: dbVisitor.token,
@@ -35,8 +48,8 @@ export function CustomerDetails({ conversation, onResolve, onArchive, onReopen, 
             browser: dbVisitor.browser || "Unknown Browser",
             os: dbVisitor.os || "Unknown OS",
             notes: ""
-        } : undefined);
-    }, [mockVisitor, dbVisitor]);
+        };
+    }, [dbVisitor]);
 
     const [notes, setNotes] = useState(() => visitor?.notes || "");
     const [savedNotes, setSavedNotes] = useState(() => visitor?.notes || "");
@@ -51,10 +64,6 @@ export function CustomerDetails({ conversation, onResolve, onArchive, onReopen, 
 
     const handleSaveNotes = () => {
         if (!visitor) return;
-        // Update mock state reference directly in the global cache to avoid mutating hook-derived objects
-        if (conversation && mockVisitorDetails[conversation.visitorId]) {
-            mockVisitorDetails[conversation.visitorId].notes = notes;
-        }
         setSavedNotes(notes);
     };
 
