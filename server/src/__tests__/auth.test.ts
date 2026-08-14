@@ -39,6 +39,100 @@ describe('Auth Endpoints (/api/v1/auth)', () => {
     expect(res.body.success).toBe(false);
   });
 
+  it('should register a new organization and admin user with display name', async () => {
+    const testEmail = `admin.name.${Date.now()}@example.com`;
+    const regRes = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        organizationName: 'Name Test Org',
+        email: testEmail,
+        password: 'Password123!',
+        name: 'Admin Boss',
+      });
+
+    expect(regRes.status).toBe(201);
+    expect(regRes.body.success).toBe(true);
+    expect(regRes.body.data.user.name).toBe('Admin Boss');
+    expect(regRes.body.data.user.email).toBe(testEmail.toLowerCase());
+
+    // Clean up
+    const createdUser = await prisma.user.findUnique({ where: { email: testEmail.toLowerCase() } });
+    if (createdUser) {
+      await prisma.user.delete({ where: { id: createdUser.id } }).catch(() => {});
+      await prisma.organization.delete({ where: { id: createdUser.organizationId } }).catch(() => {});
+    }
+  });
+
+  it('should return 409 Conflict when registering with an existing email', async () => {
+    const testEmail = `duplicate.${Date.now()}@example.com`;
+    const regRes1 = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        organizationName: 'Dup Org 1',
+        email: testEmail,
+        password: 'Password123!',
+      });
+
+    expect(regRes1.status).toBe(201);
+
+    const regRes2 = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        organizationName: 'Dup Org 2',
+        email: testEmail,
+        password: 'Password123!',
+      });
+
+    expect(regRes2.status).toBe(409);
+    expect(regRes2.body.success).toBe(false);
+
+    // Clean up
+    const createdUser = await prisma.user.findUnique({ where: { email: testEmail.toLowerCase() } });
+    if (createdUser) {
+      await prisma.user.delete({ where: { id: createdUser.id } }).catch(() => {});
+      await prisma.organization.delete({ where: { id: createdUser.organizationId } }).catch(() => {});
+    }
+  });
+
+  it('should fetch user details with name from /auth/me after login', async () => {
+    const testEmail = `me.test.${Date.now()}@example.com`;
+    await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        organizationName: 'Me Test Org',
+        email: testEmail,
+        password: 'Password123!',
+        name: 'Jane Doe',
+      });
+
+    const loginRes = await request(app)
+      .post('/api/v1/auth/login')
+      .send({
+        email: testEmail,
+        password: 'Password123!',
+      });
+
+    expect(loginRes.status).toBe(200);
+    const cookies = loginRes.get('Set-Cookie') || [];
+    const accessTokenCookie = cookies.find((c: string) => c.startsWith('accessToken='));
+    expect(accessTokenCookie).toBeDefined();
+
+    const meRes = await request(app)
+      .get('/api/v1/auth/me')
+      .set('Cookie', [accessTokenCookie!]);
+
+    expect(meRes.status).toBe(200);
+    expect(meRes.body.data.user.name).toBe('Jane Doe');
+    expect(meRes.body.data.user.email).toBe(testEmail.toLowerCase());
+
+    // Clean up
+    const createdUser = await prisma.user.findUnique({ where: { email: testEmail.toLowerCase() } });
+    if (createdUser) {
+      await prisma.user.delete({ where: { id: createdUser.id } }).catch(() => {});
+      await prisma.organization.delete({ where: { id: createdUser.organizationId } }).catch(() => {});
+    }
+  });
+
   it('should invalidate refresh token in database on logout and reject reuse', async () => {
     const testEmail = `logout.test.${Date.now()}@example.com`;
     const regRes = await request(app)

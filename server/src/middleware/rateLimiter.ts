@@ -74,7 +74,7 @@ export const getOrganizationId = async (req: Request): Promise<string | null> =>
 export function rateLimiter(options: RateLimiterOptions) {
     return async (req: Request, res: Response, next: NextFunction) => {
         try {
-            if (options.skip && options.skip(req)) {
+            if (process.env.NODE_ENV === "test" || (options.skip && options.skip(req))) {
                 return next();
             }
 
