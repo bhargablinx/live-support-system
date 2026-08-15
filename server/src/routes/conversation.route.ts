@@ -12,6 +12,7 @@ import {
     isConversationResolved,
     getLatestConversation
 } from "../controllers/conversation.controller.js";
+import { addTagToConversation, removeTagFromConversation } from "../controllers/tag.controller.js";
 import { verifyJwt, authorizeRole } from "../middleware/auth.middleware.js";
 import { widgetLimiter, visitorLimiter, userLimiter, orgLimiter } from "../middleware/rateLimiter.js";
 import { validate } from "../middleware/validate.middleware.js";
@@ -20,6 +21,10 @@ import {
     getLatestConversationSchema,
     conversationIdParamSchema
 } from "../validators/conversation.validator.js";
+import {
+    addConversationTagSchema,
+    removeConversationTagSchema
+} from "../validators/tag.validator.js";
 
 const router = Router();
 
@@ -34,5 +39,7 @@ router.delete("/:id", verifyJwt, authorizeRole("ADMIN"), userLimiter, orgLimiter
 router.get("/:id/messages", verifyJwt, userLimiter, orgLimiter, validate(conversationIdParamSchema), getMessages);
 router.get("/:id/visitor-messages", visitorLimiter, orgLimiter, validate(conversationIdParamSchema), getVisitorMessages);
 router.post("/resolved", visitorLimiter, orgLimiter, isConversationResolved);
+router.post("/:id/tags", verifyJwt, userLimiter, orgLimiter, validate(addConversationTagSchema), addTagToConversation);
+router.delete("/:id/tags/:tagId", verifyJwt, userLimiter, orgLimiter, validate(removeConversationTagSchema), removeTagFromConversation);
 
 export default router;
