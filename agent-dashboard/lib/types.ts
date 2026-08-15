@@ -51,6 +51,25 @@ export interface Feedback {
     createdAt: string;
 }
 
+export interface Tag {
+    id: string;
+    organizationId: string;
+    name: string;
+    color: string;
+    createdAt: string;
+    _count?: {
+        conversations: number;
+    };
+}
+
+export interface ConversationTag {
+    conversationId: string;
+    tagId: string;
+    tag: Tag;
+    createdAt: string;
+    taggedByUserId?: string | null;
+}
+
 export interface Conversation {
     id: string;
     organizationId: string;
@@ -61,6 +80,7 @@ export interface Conversation {
     status: ConversationStatus;
     messages?: Message[];
     feedback?: Feedback | null;
+    tags?: ConversationTag[];
     createdAt: string;
     updatedAt: string;
 }
@@ -236,4 +256,11 @@ export interface OrganizationDetails {
     id: string;
     name: string;
     totalAgents: number;
+}
+
+export interface ConversationTaggedPayload {
+    conversationId: string;
+    tags: ConversationTag[];
+    action: "added" | "removed";
+    tagId: string;
 }

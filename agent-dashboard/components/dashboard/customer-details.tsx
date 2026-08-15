@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Conversation } from "@/lib/types";
+import { Conversation, Tag } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { MapPin, Globe, Laptop, Clock, StickyNote, CheckCircle, RefreshCcw, Archive, Star, UserCheck } from "lucide-react";
+import { MapPin, Globe, Laptop, Clock, StickyNote, CheckCircle, RefreshCcw, Archive, Star, UserCheck, Tag as TagIcon, Plus, X } from "lucide-react";
 import { Card, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Avatar, AvatarFallback } from "../ui/avatar";
+import { fetchTags, addTagToConversation, removeTagFromConversation } from "@/lib/api/tag";
 
 interface VisitorDetail {
     id: string;
@@ -54,6 +55,40 @@ export function CustomerDetails({ conversation, onResolve, onArchive, onReopen, 
     const [notes, setNotes] = useState(() => visitor?.notes || "");
     const [savedNotes, setSavedNotes] = useState(() => visitor?.notes || "");
     const [prevVisitorId, setPrevVisitorId] = useState<string | null>(() => visitor?.id || null);
+
+    const [orgTags, setOrgTags] = useState<Tag[]>([]);
+    const [isAddingTag, setIsAddingTag] = useState(false);
+    const [newTagName, setNewTagName] = useState("");
+
+    const loadOrgTags = async () => {
+        try {
+            const res = await fetchTags();
+            if (res.data) setOrgTags(res.data);
+        } catch {
+            // Silently handle error
+        }
+    };
+
+    const handleAddTag = async (tagId?: string, name?: string) => {
+        if (!conversation) return;
+        try {
+            await addTagToConversation(conversation.id, { tagId, name });
+            setNewTagName("");
+            setIsAddingTag(false);
+            loadOrgTags();
+        } catch (err) {
+            console.error("Failed to add tag", err);
+        }
+    };
+
+    const handleRemoveTag = async (tagId: string) => {
+        if (!conversation) return;
+        try {
+            await removeTagFromConversation(conversation.id, tagId);
+        } catch (err) {
+            console.error("Failed to remove tag", err);
+        }
+    };
 
     // Adjust state during render when visitor changes (avoiding useEffect cascading renders)
     if ((visitor?.id || null) !== prevVisitorId) {
@@ -172,6 +207,102 @@ export function CustomerDetails({ conversation, onResolve, onArchive, onReopen, 
                             </div>
                         )}
                     </div>
+                </div>
+
+                {/* Conversation Tags */}
+                <div className="space-y-3 border-t border-border/60 pt-4">
+                    <div className="flex items-center justify-between">
+                        <h4 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                            <TagIcon className="h-3.5 w-3.5" />
+                            Tags
+                        </h4>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-1.5 text-[11px] text-muted-foreground hover:text-foreground"
+                            onClick={() => {
+                                setIsAddingTag(!isAddingTag);
+                                if (!isAddingTag) loadOrgTags();
+                            }}
+                        >
+                            <Plus className="h-3 w-3 mr-1" />
+                            Add Tag
+                        </Button>
+                    </div>
+
+                    {/* Current Tags List */}
+                    <div className="flex flex-wrap gap-1.5">
+                        {(conversation.tags && conversation.tags.length > 0) ? (
+                            conversation.tags.map((ct) => (
+                                <span
+                                    key={ct.tagId}
+                                    className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium text-white shadow-xs"
+                                    style={{ backgroundColor: ct.tag.color || "#6366f1" }}
+                                >
+                                    {ct.tag.name}
+                                    <button
+                                        type="button"
+                                        onClick={() => handleRemoveTag(ct.tagId)}
+                                        className="hover:opacity-75 focus:outline-none ml-0.5"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </span>
+                            ))
+                        ) : (
+                            <p className="text-xs text-muted-foreground italic">No tags assigned</p>
+                        )}
+                    </div>
+
+                    {/* Add Tag Popover/Input */}
+                    {isAddingTag && (
+                        <div className="mt-2 space-y-2 rounded-xl border border-border bg-background/60 p-2.5 text-xs">
+                            {orgTags.length > 0 && (
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-semibold text-muted-foreground">Select existing tag:</p>
+                                    <div className="flex flex-wrap gap-1">
+                                        {orgTags
+                                            .filter((t) => !conversation.tags?.some((ct) => ct.tagId === t.id))
+                                            .map((t) => (
+                                                <button
+                                                    key={t.id}
+                                                    type="button"
+                                                    onClick={() => handleAddTag(t.id)}
+                                                    className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium text-white transition-opacity hover:opacity-80"
+                                                    style={{ backgroundColor: t.color || "#6366f1" }}
+                                                >
+                                                    {t.name}
+                                                </button>
+                                            ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex gap-1.5 pt-1">
+                                <input
+                                    type="text"
+                                    placeholder="Or type new tag..."
+                                    value={newTagName}
+                                    onChange={(e) => setNewTagName(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" && newTagName.trim()) {
+                                            e.preventDefault();
+                                            handleAddTag(undefined, newTagName.trim());
+                                        }
+                                    }}
+                                    className="flex-1 rounded-lg border border-input bg-background px-2 py-1 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                                />
+                                <Button
+                                    size="sm"
+                                    className="h-7 text-[11px] px-2.5"
+                                    disabled={!newTagName.trim()}
+                                    onClick={() => handleAddTag(undefined, newTagName.trim())}
+                                >
+                                    Add
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Customer Feedback */}
