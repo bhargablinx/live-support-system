@@ -11,9 +11,16 @@ export interface PaginatedConversations {
     };
 }
 
-export const fetchConversations = async (page = 1, limit = 50): Promise<ApiResponse<PaginatedConversations | Conversation[]>> => {
+export const fetchConversations = async (page = 1, limit = 50, tagId?: string): Promise<ApiResponse<PaginatedConversations | Conversation[]>> => {
     try {
-        const response = await api.get(`/conversation?page=${page}&limit=${limit}`);
+        const params = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+        });
+        if (tagId) {
+            params.append("tagId", tagId);
+        }
+        const response = await api.get(`/conversation?${params.toString()}`);
         return response.data;
     } catch (error) {
         throw error;

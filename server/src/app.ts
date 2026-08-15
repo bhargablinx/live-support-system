@@ -10,6 +10,7 @@ import analyticsRouter from "./routes/analytics.route.js"
 import orgRouter from "./routes/org.route.js"
 import uploadRouter from "./routes/upload.route.js"
 import feedbackRouter from "./routes/feedback.route.js"
+import tagRouter from "./routes/tag.route.js"
 import { errorHandler } from "./middleware/errorHandler.js";
 import { globalLimiter } from "./middleware/rateLimiter.js";
 
@@ -37,6 +38,7 @@ app.use("/api/v1/analytics", analyticsRouter)
 app.use("/api/v1/org", orgRouter)
 app.use("/api/v1/upload", uploadRouter)
 app.use("/api/v1/feedback", feedbackRouter)
+app.use("/api/v1/tags", tagRouter)
 
 
 app.use(errorHandler)

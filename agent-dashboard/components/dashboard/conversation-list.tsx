@@ -269,18 +269,18 @@ export function ConversationList({
                                             {lastMessage?.content || "No messages yet"}
                                         </p>
 
-                                        <div className="mt-3 flex items-center gap-2">
+                                        <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
                                             {c.status === "NEW" && (
                                                 <Badge
                                                     variant="secondary"
-                                                    className="border-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                                    className="border-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] px-1.5 py-0"
                                                 >
                                                     New
                                                 </Badge>
                                             )}
 
                                             {c.status === "ACTIVE" && (
-                                                <Badge variant="outline">
+                                                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
                                                     Active
                                                 </Badge>
                                             )}
@@ -288,11 +288,21 @@ export function ConversationList({
                                             {c.status === "RESOLVED" && (
                                                 <Badge
                                                     variant="secondary"
-                                                    className="border-0 bg-muted"
+                                                    className="border-0 bg-muted text-[10px] px-1.5 py-0"
                                                 >
                                                     Resolved
                                                 </Badge>
                                             )}
+
+                                            {c.tags && c.tags.length > 0 && c.tags.map((ct) => (
+                                                <span
+                                                    key={ct.tagId}
+                                                    className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium text-white shadow-xs"
+                                                    style={{ backgroundColor: ct.tag.color || "#6366f1" }}
+                                                >
+                                                    {ct.tag.name}
+                                                </span>
+                                            ))}
                                         </div>
                                     </div>
                                 </button>

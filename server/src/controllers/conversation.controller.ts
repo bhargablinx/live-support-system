@@ -98,12 +98,23 @@ const getConversations = asyncHandler(async (req: Request, res: Response) => {
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const limit = Math.max(1, Math.min(100, parseInt(req.query.limit as string) || 25));
     const skip = (page - 1) * limit;
+    const tagId = req.query.tagId as string | undefined;
+
+    const whereClause: any = {
+        organizationId: user.organizationId,
+    };
+
+    if (tagId) {
+        whereClause.tags = {
+            some: {
+                tagId: tagId,
+            },
+        };
+    }
 
     const [conversations, totalCount] = await Promise.all([
         prisma.conversation.findMany({
-            where: {
-                organizationId: user.organizationId
-            },
+            where: whereClause,
             include: {
                 visitor: true,
                 assignedUser: {
@@ -121,7 +132,12 @@ const getConversations = asyncHandler(async (req: Request, res: Response) => {
                     },
                     take: 1
                 },
-                feedback: true
+                feedback: true,
+                tags: {
+                    include: {
+                        tag: true
+                    }
+                }
             },
             orderBy: {
                 updatedAt: "desc"
@@ -130,9 +146,7 @@ const getConversations = asyncHandler(async (req: Request, res: Response) => {
             take: limit
         }),
         prisma.conversation.count({
-            where: {
-                organizationId: user.organizationId
-            }
+            where: whereClause
         })
     ]);
 

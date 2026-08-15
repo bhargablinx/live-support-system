@@ -130,6 +130,18 @@ export function useDashboardSocket({
             );
         });
 
+        // Listen for tag updates
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        socket.on("conversation_tagged", ({ conversationId, tags }: { conversationId: string; tags: any }) => {
+            setConversations((prev) =>
+                prev.map((c) =>
+                    c.id === conversationId
+                        ? { ...c, tags }
+                        : c
+                )
+            );
+        });
+
         // Listen for presence
         socket.on("visitor_online", ({ visitorId }: { visitorId: string }) => {
             setOnlineVisitors((prev) => (prev.includes(visitorId) ? prev : [...prev, visitorId]));

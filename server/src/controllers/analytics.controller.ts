@@ -281,12 +281,30 @@ export const getAnalytics = asyncHandler(async (req: Request, res: Response) => 
         });
     });
 
+    const tagBreakdownData = await prisma.tag.findMany({
+        where: { organizationId },
+        select: {
+            id: true,
+            name: true,
+            color: true,
+            _count: { select: { conversations: true } }
+        }
+    });
+
+    const tagBreakdown = tagBreakdownData.map(t => ({
+        id: t.id,
+        name: t.name,
+        color: t.color,
+        count: t._count.conversations
+    }));
+
     const resultData = {
         kpis,
         statusDistribution,
         volumeData,
         responseTimeData,
         hourlyData,
+        tagBreakdown,
     };
 
     // Cache in Redis for 5 minutes (300 seconds)
