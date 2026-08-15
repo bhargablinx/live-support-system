@@ -131,6 +131,7 @@ export function useDashboardSocket({
         });
 
         // Listen for tag updates
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         socket.on("conversation_tagged", ({ conversationId, tags }: { conversationId: string; tags: any }) => {
             setConversations((prev) =>
                 prev.map((c) =>
