@@ -33,6 +33,7 @@ model Organization {
   visitors      Visitor[]
   conversations Conversation[]
   feedbacks     Feedback[]
+  tags          Tag[]
   createdAt     DateTime       @default(now())
 }
 
@@ -79,6 +80,7 @@ model Conversation {
   status         ConversationStatus @default(NEW)
   messages       Message[]
   feedback       Feedback?
+  tags           ConversationTag[]
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
 
@@ -123,3 +125,30 @@ model Feedback {
 
   @@index([organizationId])
 }
+
+model Tag {
+  id             String            @id @default(cuid())
+  organizationId String
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  color          String            @default("#6366f1")
+  conversations  ConversationTag[]
+  createdAt      DateTime          @default(now())
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+model ConversationTag {
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  tagId          String
+  tag            Tag          @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  taggedByUserId String?
+
+  @@id([conversationId, tagId])
+  @@index([tagId])
+  @@index([conversationId])
+}
+
