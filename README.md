@@ -55,21 +55,25 @@ For a deeper dive into architecture and schemas, refer to the [AI_CONTEXT.md](fi
 
 ## Repository Layout
 
-The workspace is organized as a multi-package repository (each service operates with its own `package.json`):
+The workspace is organized as a multi-package repository (each service operates with its own `package.json` and dedicated documentation):
 
 ```
 live-support-system/
 ├── docs/                      # Original design & protocol specs
-├── server/                    # Express + Socket.io + Prisma Server
+├── server/                    # Express + Socket.io + Prisma Server (See server/README.md)
 │   ├── prisma/                # Database migrations and PostgreSQL schema
 │   └── src/                   # Backend Server source code
-├── widget/                    # Vite + React Guest Chat Widget
+├── widget/                    # Vite + React Guest Chat Widget (See widget/README.md)
 │   └── src/                   # Chat widget UI and store
-└── agent-dashboard/           # Next.js Agent Admin dashboard
+└── agent-dashboard/           # Next.js Agent Admin dashboard (See agent-dashboard/README.md)
     ├── app/                   # App Router pages and layouts
     ├── components/            # Reusable UI dashboard panels
     └── hooks/                 # Custom React hooks (use-dashboard-socket.ts)
 ```
+
+- 🖥️ **Backend Server Guide**: [server/README.md](file:///home/bhargab/WebD/live-support-system/server/README.md)
+- 💬 **Guest Widget Guide**: [widget/README.md](file:///home/bhargab/WebD/live-support-system/widget/README.md)
+- 📊 **Agent Dashboard Guide**: [agent-dashboard/README.md](file:///home/bhargab/WebD/live-support-system/agent-dashboard/README.md)
 
 ---
 
