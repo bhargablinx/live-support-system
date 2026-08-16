@@ -47,6 +47,7 @@ model User {
   role           UserRole       @default(AGENT)
   refreshToken   String?
   conversations  Conversation[] @relation("AssignedAgent")
+  internalNotes  InternalNote[]
   createdAt      DateTime       @default(now())
 
   @@index([organizationId])
@@ -81,6 +82,7 @@ model Conversation {
   messages       Message[]
   feedback       Feedback?
   tags           ConversationTag[]
+  internalNotes  InternalNote[]
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
 
@@ -151,4 +153,19 @@ model ConversationTag {
   @@index([tagId])
   @@index([conversationId])
 }
+
+model InternalNote {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  authorId       String
+  author         User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  content        String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([conversationId])
+  @@index([authorId])
+}
+
 

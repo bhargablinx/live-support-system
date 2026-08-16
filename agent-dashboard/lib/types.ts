@@ -264,3 +264,27 @@ export interface ConversationTaggedPayload {
     action: "added" | "removed";
     tagId: string;
 }
+
+export interface InternalNote {
+    id: string;
+    conversationId: string;
+    authorId: string;
+    author: {
+        id: string;
+        name?: string | null;
+        email: string;
+    };
+    content: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface InternalNoteCreatedPayload {
+    conversationId: string;
+    note: InternalNote;
+}
+
+export interface InternalNoteDeletedPayload {
+    conversationId: string;
+    noteId: string;
+}

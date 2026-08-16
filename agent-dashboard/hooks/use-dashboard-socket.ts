@@ -11,6 +11,9 @@ interface UseDashboardSocketProps {
     setVisitorTyping: React.Dispatch<React.SetStateAction<string | null>>;
     loadConversations: () => Promise<void>;
     selectedId: string | null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onInternalNoteCreated?: (payload: { conversationId: string; note: any }) => void;
+    onInternalNoteDeleted?: (payload: { conversationId: string; noteId: string }) => void;
 }
 
 export function useDashboardSocket({
@@ -21,6 +24,8 @@ export function useDashboardSocket({
     setVisitorTyping,
     loadConversations,
     selectedId,
+    onInternalNoteCreated,
+    onInternalNoteDeleted,
 }: UseDashboardSocketProps) {
     const { user } = useAppSelector((state) => state.auth);
     const socketRef = useRef<Socket | null>(null);
@@ -145,6 +150,20 @@ export function useDashboardSocket({
                         : c
                 )
             );
+        });
+
+        // Listen for internal notes
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        socket.on("internal_note_created", (payload: { conversationId: string; note: any }) => {
+            if (onInternalNoteCreated) {
+                onInternalNoteCreated(payload);
+            }
+        });
+
+        socket.on("internal_note_deleted", (payload: { conversationId: string; noteId: string }) => {
+            if (onInternalNoteDeleted) {
+                onInternalNoteDeleted(payload);
+            }
         });
 
         // Listen for presence
