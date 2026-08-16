@@ -5,7 +5,7 @@ import { useAppSelector } from "@/lib/store/store";
 import { ConversationList } from "@/components/dashboard/conversation-list";
 import { ChatWindow } from "@/components/dashboard/chat-window";
 import { CustomerDetails } from "@/components/dashboard/customer-details";
-import { Conversation, Message } from "@/lib/types";
+import { Conversation, Message, InternalNote } from "@/lib/types";
 import { useDashboardSocket } from "@/hooks/use-dashboard-socket";
 import {
     fetchConversations,
@@ -16,11 +16,17 @@ import {
     reopenConversation,
     deleteConversation,
 } from "@/lib/api/conversation";
+import {
+    fetchInternalNotes,
+    createInternalNote,
+    deleteInternalNote,
+} from "@/lib/api/note";
 
 export default function DashboardPage() {
     const { user } = useAppSelector((state) => state.auth);
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [messages, setMessages] = useState<Record<string, Message[]>>({});
+    const [notes, setNotes] = useState<Record<string, InternalNote[]>>({});
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [onlineVisitors, setOnlineVisitors] = useState<string[]>([]);
     // Stores the conversationId where the visitor is currently typing (null = no one typing)
@@ -34,6 +40,7 @@ export default function DashboardPage() {
 
     const activeConversation = conversations.find((c) => c.id === selectedId) || null;
     const activeMessages = selectedId ? messages[selectedId] || [] : [];
+    const activeNotes = selectedId ? notes[selectedId] || [] : [];
 
     // Load initial data — wrapped in useCallback so the reference is stable.
     const loadConversations = useCallback(async () => {
@@ -63,7 +70,7 @@ export default function DashboardPage() {
         }
     }, [user, loadConversations]);
 
-    // Fetch full messages history when a conversation is selected
+    // Fetch full messages and internal notes history when a conversation is selected
     useEffect(() => {
         if (selectedId) {
             fetchMessages(selectedId)
@@ -76,8 +83,40 @@ export default function DashboardPage() {
                     }
                 })
                 .catch((err) => console.error("Failed to load conversation messages:", err));
+
+            fetchInternalNotes(selectedId)
+                .then((res) => {
+                    if (res.statusCode === 200 && res.data) {
+                        setNotes((prev) => ({
+                            ...prev,
+                            [selectedId]: res.data,
+                        }));
+                    }
+                })
+                .catch((err) => console.error("Failed to load conversation internal notes:", err));
         }
     }, [selectedId]);
+
+    const handleNoteCreated = useCallback(({ conversationId, note }: { conversationId: string; note: InternalNote }) => {
+        setNotes((prev) => {
+            const list = prev[conversationId] || [];
+            if (list.some((n) => n.id === note.id)) return prev;
+            return {
+                ...prev,
+                [conversationId]: [...list, note],
+            };
+        });
+    }, []);
+
+    const handleNoteDeleted = useCallback(({ conversationId, noteId }: { conversationId: string; noteId: string }) => {
+        setNotes((prev) => {
+            const list = prev[conversationId] || [];
+            return {
+                ...prev,
+                [conversationId]: list.filter((n) => n.id !== noteId),
+            };
+        });
+    }, []);
 
     // Setup Socket.io real-time connection and event listeners
     const { sendMessage, sendTypingEvent } = useDashboardSocket({
@@ -88,7 +127,33 @@ export default function DashboardPage() {
         setVisitorTyping: setVisitorTypingConvoId,
         loadConversations,
         selectedId,
+        onInternalNoteCreated: handleNoteCreated,
+        onInternalNoteDeleted: handleNoteDeleted,
     });
+
+    const handleSendNote = async (content: string) => {
+        if (!selectedId) return;
+        try {
+            const res = await createInternalNote(selectedId, content);
+            if (res.statusCode === 201 && res.data) {
+                handleNoteCreated({ conversationId: selectedId, note: res.data });
+            }
+        } catch (error) {
+            console.error("Failed to create internal note:", error);
+        }
+    };
+
+    const handleDeleteNote = async (noteId: string) => {
+        if (!selectedId) return;
+        try {
+            const res = await deleteInternalNote(selectedId, noteId);
+            if (res.statusCode === 200) {
+                handleNoteDeleted({ conversationId: selectedId, noteId });
+            }
+        } catch (error) {
+            console.error("Failed to delete internal note:", error);
+        }
+    };
 
     // True when the visitor in the currently open conversation is typing
     const isVisitorTyping = visitorTypingConvoId === selectedId && selectedId !== null;
@@ -189,7 +254,10 @@ export default function DashboardPage() {
                 <ChatWindow
                     conversation={activeConversation}
                     messages={activeMessages}
+                    notes={activeNotes}
                     onSendMessage={sendMessage}
+                    onSendNote={handleSendNote}
+                    onDeleteNote={handleDeleteNote}
                     onClaim={handleClaim}
                     onDelete={handleDelete}
                     isOnline={activeConversation ? onlineVisitors.includes(activeConversation.visitorId) : false}

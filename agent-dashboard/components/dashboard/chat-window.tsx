@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useAppSelector } from "@/lib/store/store";
-import { Conversation, Message } from "@/lib/types";
+import { Conversation, Message, InternalNote } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -10,19 +10,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Command, CommandList, CommandItem, CommandEmpty, CommandGroup } from "@/components/ui/command";
-import { Send, Smile, Paperclip, MoreHorizontal, Inbox, UserPlus, Bolt, Trash2, Loader2 } from "lucide-react";
+import { Send, Smile, Paperclip, MoreHorizontal, Inbox, UserPlus, Bolt, Trash2, Loader2, Lock, StickyNote, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { uploadFile } from "@/lib/api/upload";
 
 interface ChatWindowProps {
     conversation: Conversation | null;
     messages: Message[];
+    notes?: InternalNote[];
     onSendMessage: (content: string, attachments?: Array<{
         fileUrl: string;
         fileName: string;
         fileType: string;
         fileSize: number;
     }>) => void;
+    onSendNote?: (content: string) => Promise<void>;
+    onDeleteNote?: (noteId: string) => Promise<void>;
     onClaim?: () => void;
     onDelete?: () => void;
     isOnline?: boolean;
@@ -40,7 +43,10 @@ const CANNED_RESPONSES = [
 export function ChatWindow({
     conversation,
     messages,
+    notes = [],
     onSendMessage,
+    onSendNote,
+    onDeleteNote,
     onClaim,
     onDelete,
     isOnline = false,
@@ -49,6 +55,7 @@ export function ChatWindow({
 }: ChatWindowProps) {
     const { user } = useAppSelector((state) => state.auth);
     const [inputValue, setInputValue] = useState("");
+    const [composeMode, setComposeMode] = useState<"public" | "note">("public");
     const [showCanned, setShowCanned] = useState(false);
     const [filteredCanned, setFilteredCanned] = useState(CANNED_RESPONSES);
     const [isUploading, setIsUploading] = useState(false);
@@ -154,7 +161,7 @@ export function ChatWindow({
         }
     };
 
-    const handleSend = () => {
+    const handleSend = async () => {
         if (!inputValue.trim() || !isClaimedByMe) return;
         // Stop typing before sending
         if (isTypingRef.current) {
@@ -165,10 +172,26 @@ export function ChatWindow({
             clearTimeout(stopTypingTimer.current);
             stopTypingTimer.current = null;
         }
-        onSendMessage(inputValue.trim());
+
+        const text = inputValue.trim();
         setInputValue("");
         setShowCanned(false);
+
+        if (composeMode === "note") {
+            if (onSendNote) {
+                await onSendNote(text);
+            }
+        } else {
+            onSendMessage(text);
+        }
     };
+
+    // Timeline items combining messages and internal notes
+    const timelineItems = useMemo(() => {
+        const msgItems = (messages || []).map((m) => ({ type: "message" as const, data: m, time: new Date(m.createdAt).getTime() }));
+        const noteItems = (notes || []).map((n) => ({ type: "note" as const, data: n, time: new Date(n.createdAt).getTime() }));
+        return [...msgItems, ...noteItems].sort((a, b) => a.time - b.time);
+    }, [messages, notes]);
 
     // Render empty state if no active chat
     if (!conversation) {
@@ -282,7 +305,7 @@ export function ChatWindow({
             {/* Message bubbles thread */}
             <ScrollArea className="flex-1 min-h-0 bg-muted/15">
                 <div className="px-6 py-6 flex flex-col gap-6">
-                    {messages.length === 0 ? (
+                    {timelineItems.length === 0 ? (
                         <div className="flex h-[300px] flex-col items-center justify-center text-center">
                             <Avatar className="h-16 w-16 mb-4 border border-border/50">
                                 <AvatarFallback className="bg-primary/5 text-primary text-xl font-bold">{avatarChar}</AvatarFallback>
@@ -292,7 +315,7 @@ export function ChatWindow({
                                 No previous conversation
                             </p>
                             <p className="text-sm text-muted-foreground max-w-sm mt-4 bg-muted/50 px-4 py-2 rounded-lg border border-border/50">
-                                Start by introducing yourself.
+                                Start by introducing yourself or adding an internal note.
                             </p>
                         </div>
                     ) : (
@@ -303,24 +326,62 @@ export function ChatWindow({
                                 <Separator className="flex-1" />
                             </div>
 
-                            {groupedMessages.map((m, index) => {
+                            {timelineItems.map((item) => {
+                                if (item.type === "note") {
+                                    const note = item.data;
+                                    const canDeleteNote = note.authorId === user?.id || user?.role === "ADMIN";
+                                    return (
+                                        <div key={`note-${note.id}`} className="w-full flex flex-col items-center my-1">
+                                            <div className="w-full max-w-[85%] bg-amber-500/10 dark:bg-amber-950/40 border border-amber-500/30 text-amber-950 dark:text-amber-100 rounded-xl p-3.5 shadow-xs flex flex-col gap-2">
+                                                <div className="flex items-center justify-between gap-2 border-b border-amber-500/20 pb-2">
+                                                    <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-800 dark:text-amber-300">
+                                                        <Lock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                                                        <span>INTERNAL NOTE</span>
+                                                        <span className="text-amber-600/70 dark:text-amber-400/70 font-normal">
+                                                            by {note.author.name || note.author.email}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] font-medium text-amber-700/80 dark:text-amber-400/80">
+                                                            {new Date(note.createdAt).toLocaleTimeString([], {
+                                                                hour: "2-digit",
+                                                                minute: "2-digit",
+                                                            })}
+                                                        </span>
+                                                        {canDeleteNote && onDeleteNote && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => onDeleteNote(note.id)}
+                                                                className="text-amber-700/60 hover:text-amber-900 dark:text-amber-400/60 dark:hover:text-amber-200 transition-colors"
+                                                                title="Delete internal note"
+                                                            >
+                                                                <Trash2 className="h-3.5 w-3.5" />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <p className="text-sm leading-relaxed whitespace-pre-wrap break-words font-sans">
+                                                    {note.content}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    );
+                                }
+
+                                const m = item.data;
                                 const isAgent = m.senderType === "AGENT";
-                                const prevMessage = index > 0 ? groupedMessages[index - 1] : null;
-                                const showSender = !prevMessage || prevMessage.senderType !== m.senderType;
 
                                 return (
                                     <div
-                                        key={m.id}
+                                        key={`msg-${m.id}`}
                                         className={cn(
                                             "flex w-full flex-col gap-1",
                                             isAgent ? "items-end" : "items-start"
                                         )}
                                     >
-                                        {showSender && (
-                                            <span className="text-xs font-semibold text-muted-foreground mb-0.5 px-1">
-                                                {isAgent ? "You" : visitorName.split(" ")[0]}
-                                            </span>
-                                        )}
+                                        <span className="text-xs font-semibold text-muted-foreground mb-0.5 px-1">
+                                            {isAgent ? "You" : visitorName.split(" ")[0]}
+                                        </span>
                                         <div
                                             className={cn(
                                                 "relative max-w-[75%] px-3.5 pt-2.5 pb-2 text-[14px] shadow-sm flex flex-col gap-1 rounded-2xl",
@@ -396,10 +457,46 @@ export function ChatWindow({
 
             {/* Compose area */}
             <div className="p-4 bg-background border-t border-border shrink-0">
-                <div className="relative rounded-xl border border-input bg-background focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all shadow-sm">
+                {/* Mode Selector Toggle Bar */}
+                <div className="flex items-center gap-2 mb-2 px-1">
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant={composeMode === "public" ? "secondary" : "ghost"}
+                        onClick={() => setComposeMode("public")}
+                        className={cn(
+                            "h-7 text-xs gap-1.5 font-medium rounded-lg",
+                            composeMode === "public" && "bg-primary/10 text-primary hover:bg-primary/15"
+                        )}
+                    >
+                        <MessageSquare className="h-3.5 w-3.5" />
+                        Public Reply
+                    </Button>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant={composeMode === "note" ? "secondary" : "ghost"}
+                        onClick={() => setComposeMode("note")}
+                        className={cn(
+                            "h-7 text-xs gap-1.5 font-medium rounded-lg",
+                            composeMode === "note" && "bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 font-semibold"
+                        )}
+                    >
+                        <Lock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                        Internal Note
+                    </Button>
+                </div>
 
-                    {/* Canned Responses Popover inside Input container visually */}
-                    {showCanned && filteredCanned.length > 0 && (
+                <div
+                    className={cn(
+                        "relative rounded-xl border bg-background transition-all shadow-sm",
+                        composeMode === "note"
+                            ? "border-amber-500/50 bg-amber-500/5 dark:bg-amber-950/20 focus-within:ring-1 focus-within:ring-amber-500"
+                            : "border-input focus-within:border-primary focus-within:ring-1 focus-within:ring-primary"
+                    )}
+                >
+                    {/* Canned Responses Popover */}
+                    {showCanned && filteredCanned.length > 0 && composeMode === "public" && (
                         <div className="absolute left-0 right-0 bottom-full mb-2 z-50">
                             <Command className="rounded-xl border border-border shadow-lg max-h-[300px]" shouldFilter={false}>
                                 <CommandList>
@@ -424,9 +521,11 @@ export function ChatWindow({
                     <Textarea
                         ref={textareaRef}
                         placeholder={
-                            isClaimedByMe
-                                ? "🙂 Type a message... (use '/' for shortcuts)"
-                                : "You must claim this chat to write messages"
+                            !isClaimedByMe
+                                ? "You must claim this chat to write messages"
+                                : composeMode === "note"
+                                ? "🔒 Write an internal note (only visible to support agents)..."
+                                : "🙂 Type a message... (use '/' for shortcuts)"
                         }
                         disabled={!isClaimedByMe}
                         value={inputValue}
@@ -438,26 +537,36 @@ export function ChatWindow({
 
                     <div className="flex items-center justify-between px-3 pb-2 pt-1">
                         <div className="flex items-center gap-1">
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                onChange={handleFileChange}
-                                className="hidden"
-                                disabled={!isClaimedByMe || isUploading}
-                            />
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-muted-foreground"
-                                disabled={!isClaimedByMe || isUploading}
-                                onClick={() => fileInputRef.current?.click()}
-                            >
-                                {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
-                            </Button>
-                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" disabled={!isClaimedByMe}>
-                                <Smile className="h-4 w-4" />
-                            </Button>
+                            {composeMode === "public" && (
+                                <>
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        onChange={handleFileChange}
+                                        className="hidden"
+                                        disabled={!isClaimedByMe || isUploading}
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-muted-foreground"
+                                        disabled={!isClaimedByMe || isUploading}
+                                        onClick={() => fileInputRef.current?.click()}
+                                    >
+                                        {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+                                    </Button>
+                                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" disabled={!isClaimedByMe}>
+                                        <Smile className="h-4 w-4" />
+                                    </Button>
+                                </>
+                            )}
+                            {composeMode === "note" && (
+                                <span className="text-xs font-medium text-amber-700 dark:text-amber-400 flex items-center gap-1 px-1">
+                                    <StickyNote className="h-3.5 w-3.5" />
+                                    Agent-only annotation
+                                </span>
+                            )}
                         </div>
 
                         <Button
@@ -466,12 +575,13 @@ export function ChatWindow({
                             onClick={handleSend}
                             variant={inputValue.trim() ? "default" : "ghost"}
                             className={cn(
-                                "h-8 px-3 rounded-lg transition-all",
+                                "h-8 px-3 rounded-lg transition-all gap-1.5",
+                                composeMode === "note" && inputValue.trim() && "bg-amber-600 hover:bg-amber-700 text-white border-0 shadow-xs",
                                 !inputValue.trim() && "text-muted-foreground hover:bg-muted"
                             )}
                         >
-                            <Send className="h-4 w-4 mr-1.5" />
-                            Send
+                            {composeMode === "note" ? <Lock className="h-3.5 w-3.5" /> : <Send className="h-3.5 w-3.5" />}
+                            {composeMode === "note" ? "Add Note" : "Send"}
                         </Button>
                     </div>
                 </div>
