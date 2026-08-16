@@ -34,8 +34,13 @@ export function useDashboardSocket({
     useEffect(() => {
         if (!user) return;
 
-        // Connect directly to the backend socket server
-        const socket = io("http://localhost:8000", {
+        // Connect directly to the backend socket server using env resolution
+        const socketUrl =
+            process.env.NEXT_PUBLIC_SOCKET_URL ||
+            process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/api\/v1\/?$/, "") ||
+            "http://localhost:8000";
+
+        const socket = io(socketUrl, {
             withCredentials: true,
             transports: ["polling", "websocket"],
         });
