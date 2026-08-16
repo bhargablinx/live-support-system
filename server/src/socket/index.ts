@@ -58,85 +58,101 @@ export function registerSocketHandlers(io: Server) {
         }, 30_000);
 
         socket.on("join_room", async ({ conversationId }: { conversationId: string }) => {
-            const actorId = type === 'visitor' ? visitorId : userId;
-            if (!actorId || !conversationId) return;
+            try {
+                const actorId = type === 'visitor' ? visitorId : userId;
+                if (!actorId || !conversationId) return;
 
-            // Throttling room joining: max 5 times per 5 seconds
-            const check = await checkRateLimit(`ws:join_room:${actorId}`, 5, 5000);
-            if (!check.success) {
-                socket.emit("error_message", {
-                    message: "Too many room changes. Please wait."
-                });
-                return;
-            }
-
-            // Verify conversation ownership / access rights
-            const conversation = await prisma.conversation.findFirst({
-                where: {
-                    id: conversationId,
-                    organizationId,
-                    ...(type === 'visitor' ? { visitorId } : {}),
+                // Throttling room joining: max 5 times per 5 seconds
+                const check = await checkRateLimit(`ws:join_room:${actorId}`, 5, 5000);
+                if (!check.success) {
+                    socket.emit("error_message", {
+                        message: "Too many room changes. Please wait."
+                    });
+                    return;
                 }
-            });
 
-            if (!conversation) {
+                // Verify conversation ownership / access rights
+                const conversation = await prisma.conversation.findFirst({
+                    where: {
+                        id: conversationId,
+                        organizationId,
+                        ...(type === 'visitor' ? { visitorId } : {}),
+                    }
+                });
+
+                if (!conversation) {
+                    socket.emit("error_message", {
+                        message: "Conversation not found or access denied.",
+                        conversationId
+                    });
+                    return;
+                }
+
+                // Leave any other conversation rooms the socket might be in
+                for (const room of socket.rooms) {
+                    if (room !== socket.id && room !== `org_${organizationId}` && room !== conversationId) {
+                        void socket.leave(room);
+                        console.log(`Socket left room: ${room}`);
+                    }
+                }
+                socket.join(conversationId)
+                console.log(`User joined room: ${conversationId}`)
+                socket.emit("room_joined", { conversationId });
+            } catch (err) {
+                console.error("Error handling join_room socket event:", err);
                 socket.emit("error_message", {
-                    message: "Conversation not found or access denied.",
+                    message: "Failed to join conversation room.",
                     conversationId
                 });
-                return;
             }
-
-            // Leave any other conversation rooms the socket might be in
-            for (const room of socket.rooms) {
-                if (room !== socket.id && room !== `org_${organizationId}` && room !== conversationId) {
-                    void socket.leave(room);
-                    console.log(`Socket left room: ${room}`);
-                }
-            }
-            socket.join(conversationId)
-            console.log(`User joined room: ${conversationId}`)
-            socket.emit("room_joined", { conversationId });
         });
 
         socket.on("type_start", async ({ conversationId }: { conversationId: string }) => {
-            const actorId = type === "visitor" ? visitorId : userId;
-            if (!actorId || !conversationId) return;
+            try {
+                const actorId = type === "visitor" ? visitorId : userId;
+                if (!actorId || !conversationId) return;
 
-            // Throttling typing start notifications: max 1 per 2 seconds
-            const check = await checkRateLimit(`ws:type_start:${actorId}`, 1, 2000);
-            if (!check.success) {
-                // Silently ignore typing notification spam
-                return;
+                // Throttling typing start notifications: max 1 per 2 seconds
+                const check = await checkRateLimit(`ws:type_start:${actorId}`, 1, 2000);
+                if (!check.success) {
+                    // Silently ignore typing notification spam
+                    return;
+                }
+
+                await presenceService.startTyping(conversationId, actorId, type);
+
+                // Broadcast to the conversation room (excluding the sender)
+                socket.to(conversationId).emit("typing_start", {
+                    actorId,
+                    actorType: type,
+                    conversationId,
+                });
+            } catch (err) {
+                console.error("Error handling type_start socket event:", err);
             }
-
-            await presenceService.startTyping(conversationId, actorId, type);
-
-            // Broadcast to the conversation room (excluding the sender)
-            socket.to(conversationId).emit("typing_start", {
-                actorId,
-                actorType: type,
-                conversationId,
-            })
         });
 
         socket.on("type_stop", async ({ conversationId }: { conversationId: string }) => {
-            const actorId = type === "visitor" ? visitorId : userId;
-            if (!actorId || !conversationId) return;
+            try {
+                const actorId = type === "visitor" ? visitorId : userId;
+                if (!actorId || !conversationId) return;
 
-            // Throttling typing stop notifications: max 1 per 2 seconds
-            const check = await checkRateLimit(`ws:type_stop:${actorId}`, 1, 2000);
-            if (!check.success) {
-                return;
+                // Throttling typing stop notifications: max 1 per 2 seconds
+                const check = await checkRateLimit(`ws:type_stop:${actorId}`, 1, 2000);
+                if (!check.success) {
+                    return;
+                }
+
+                await presenceService.stopTyping(conversationId, actorId);
+
+                socket.to(conversationId).emit("typing_stop", {
+                    actorId,
+                    conversationId,
+                });
+            } catch (err) {
+                console.error("Error handling type_stop socket event:", err);
             }
-
-            await presenceService.stopTyping(conversationId, actorId);
-
-            socket.to(conversationId).emit("typing_stop", {
-                actorId,
-                conversationId,
-            })
-        })
+        });
 
         socket.on("send_message", async ({ 
             conversationId, 
@@ -152,129 +168,141 @@ export function registerSocketHandlers(io: Server) {
                 fileSize: number;
             }>
         }) => {
-            const senderType = socket.data.type === "agent" ? "AGENT" : "VISITOR";
-            const actorId = type === "visitor" ? visitorId : userId;
-            if (!actorId || !conversationId) return;
+            try {
+                const senderType = socket.data.type === "agent" ? "AGENT" : "VISITOR";
+                const actorId = type === "visitor" ? visitorId : userId;
+                if (!actorId || !conversationId) return;
 
-            // Message rate limiting: max 10 messages per 10 seconds
-            const check = await checkRateLimit(`ws:send_message:${actorId}`, 10, 10000);
-            if (!check.success) {
-                socket.emit("error_message", {
-                    message: "You are sending messages too quickly. Please slow down.",
-                    conversationId
-                });
-                return;
-            }
-
-            // Verify conversation ownership and organization boundary
-            const conversation = await prisma.conversation.findFirst({
-                where: {
-                    id: conversationId,
-                    organizationId,
-                    ...(type === 'visitor' ? { visitorId } : {}),
+                // Message rate limiting: max 10 messages per 10 seconds
+                const check = await checkRateLimit(`ws:send_message:${actorId}`, 10, 10000);
+                if (!check.success) {
+                    socket.emit("error_message", {
+                        message: "You are sending messages too quickly. Please slow down.",
+                        conversationId
+                    });
+                    return;
                 }
-            });
 
-            if (!conversation) {
-                socket.emit("error_message", {
-                    message: "Conversation not found or access denied.",
-                    conversationId
+                // Verify conversation ownership and organization boundary
+                const conversation = await prisma.conversation.findFirst({
+                    where: {
+                        id: conversationId,
+                        organizationId,
+                        ...(type === 'visitor' ? { visitorId } : {}),
+                    }
                 });
-                return;
-            }
 
-            // Reject messages sent to resolved or archived conversations
-            if (conversation.status === "RESOLVED" || conversation.status === "ARCHIVED") {
-                socket.emit("error_message", {
-                    message: "This conversation is closed.",
-                    conversationId
-                });
-                return;
-            }
+                if (!conversation) {
+                    socket.emit("error_message", {
+                        message: "Conversation not found or access denied.",
+                        conversationId
+                    });
+                    return;
+                }
 
-            // Clear typing state when message is sent
-            await presenceService.stopTyping(conversationId, actorId);
+                // Reject messages sent to resolved or archived conversations
+                if (conversation.status === "RESOLVED" || conversation.status === "ARCHIVED") {
+                    socket.emit("error_message", {
+                        message: "This conversation is closed.",
+                        conversationId
+                    });
+                    return;
+                }
 
-            const messageCreateData: {
-                conversationId: string;
-                content: string;
-                senderType: "AGENT" | "VISITOR";
-                attachments?: {
-                    createMany: {
-                        data: Array<{
-                            fileUrl: string;
-                            fileName: string;
-                            fileType: string;
-                            fileSize: number;
-                        }>;
+                // Clear typing state when message is sent
+                await presenceService.stopTyping(conversationId, actorId);
+
+                const messageCreateData: {
+                    conversationId: string;
+                    content: string;
+                    senderType: "AGENT" | "VISITOR";
+                    attachments?: {
+                        createMany: {
+                            data: Array<{
+                                fileUrl: string;
+                                fileName: string;
+                                fileType: string;
+                                fileSize: number;
+                            }>;
+                        };
                     };
-                };
-            } = {
-                conversationId,
-                content,
-                senderType,
-            };
-
-            if (attachments && attachments.length > 0) {
-                messageCreateData.attachments = {
-                    createMany: {
-                        data: attachments
-                    }
-                };
-            }
-
-            // Create message and update conversation timestamp
-            const [message] = await prisma.$transaction([
-                prisma.message.create({
-                    data: messageCreateData,
-                    include: {
-                        attachments: true
-                    }
-                }),
-                prisma.conversation.update({
-                    where: { id: conversationId },
-                    data: { updatedAt: new Date() }
-                })
-            ]);
-
-            // Broadcast to the conversation room
-            socket.to(conversationId).emit('receive_message', message);
-            socket.emit('receive_message', message);
-
-            // Broadcast to organization room so agents see new messages / conversation list updates
-            if (socket.data.organizationId) {
-                io.to(`org_${socket.data.organizationId}`).emit("org_message", {
+                } = {
                     conversationId,
-                    message
+                    content,
+                    senderType,
+                };
+
+                if (attachments && attachments.length > 0) {
+                    messageCreateData.attachments = {
+                        createMany: {
+                            data: attachments
+                        }
+                    };
+                }
+
+                // Create message and update conversation timestamp
+                const [message] = await prisma.$transaction([
+                    prisma.message.create({
+                        data: messageCreateData,
+                        include: {
+                            attachments: true
+                        }
+                    }),
+                    prisma.conversation.update({
+                        where: { id: conversationId },
+                        data: { updatedAt: new Date() }
+                    })
+                ]);
+
+                // Broadcast to the conversation room
+                socket.to(conversationId).emit('receive_message', message);
+                socket.emit('receive_message', message);
+
+                // Broadcast to organization room so agents see new messages / conversation list updates
+                if (socket.data.organizationId) {
+                    io.to(`org_${socket.data.organizationId}`).emit("org_message", {
+                        conversationId,
+                        message
+                    });
+                }
+            } catch (err) {
+                console.error("Error handling send_message socket event:", err);
+                socket.emit("error_message", {
+                    message: "Failed to process message due to a server error.",
+                    conversationId
                 });
             }
-        })
+        });
 
         socket.on('disconnect', async () => {
-            console.log(`Socket disconnected: ${socket.id}`);
+            try {
+                console.log(`Socket disconnected: ${socket.id}`);
 
-            // Stop heartbeat
-            clearInterval(heartbeatInterval);
+                // Stop heartbeat
+                clearInterval(heartbeatInterval);
 
-            // Remove this socket from the distributed map
-            await socketMapService.unregister(socket.id);
+                // Remove this socket from the distributed map
+                await socketMapService.unregister(socket.id);
 
-            // ── Presence: mark offline only when ALL tabs are closed ──────────
-            // isConnected() checks the userSockets set AFTER unregister, so it
-            // returns false only when this was the user's last active socket.
-            if (organizationId) {
-                if (type === 'visitor' && visitorId) {
-                    const stillConnected = await socketMapService.isConnected(visitorId);
-                    if (!stillConnected) {
-                        await presenceService.setVisitorOffline(visitorId, organizationId);
-                        io.to(`org_${organizationId}`).emit("visitor_offline", { visitorId });
-                    }
-                } else if (type === 'agent' && userId) {
-                    const stillConnected = await socketMapService.isConnected(userId);
-                    if (!stillConnected) {
-                        await presenceService.setAgentOffline(userId, organizationId);
+                // ── Presence: mark offline only when ALL tabs are closed ──────────
+                // isConnected() checks the userSockets set AFTER unregister, so it
+                // returns false only when this was the user's last active socket.
+                if (organizationId) {
+                    if (type === 'visitor' && visitorId) {
+                        const stillConnected = await socketMapService.isConnected(visitorId);
+                        if (!stillConnected) {
+                            await presenceService.setVisitorOffline(visitorId, organizationId);
+                            io.to(`org_${organizationId}`).emit("visitor_offline", { visitorId });
+                        }
+                    } else if (type === 'agent' && userId) {
+                        const stillConnected = await socketMapService.isConnected(userId);
+                        if (!stillConnected) {
+                            await presenceService.setAgentOffline(userId, organizationId);
+                        }
                     }
                 }
+            } catch (err) {
+                console.error("Error handling socket disconnect event:", err);
             }
         });
     })

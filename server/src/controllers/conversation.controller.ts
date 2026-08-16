@@ -321,6 +321,10 @@ const getMessages = asyncHandler(async (req: Request, res: Response) => {
         });
     }
 
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit as string) || 100));
+    const skip = (page - 1) * limit;
+
     const messages = await prisma.message.findMany({
         where: {
             conversationId: id
@@ -330,7 +334,9 @@ const getMessages = asyncHandler(async (req: Request, res: Response) => {
         },
         include: {
             attachments: true
-        }
+        },
+        skip,
+        take: limit
     });
 
     return res.status(200).json(
@@ -568,12 +574,18 @@ const getVisitorMessages = asyncHandler(async (req: Request, res: Response) => {
         });
     }
 
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit as string) || 100));
+    const skip = (page - 1) * limit;
+
     const messages = await prisma.message.findMany({
         where: { conversationId },
         orderBy: { createdAt: "asc" },
         include: {
             attachments: true
-        }
+        },
+        skip,
+        take: limit
     });
 
     return res.status(200).json(
