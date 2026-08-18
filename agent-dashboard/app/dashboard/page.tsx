@@ -5,7 +5,7 @@ import { useAppSelector } from "@/lib/store/store";
 import { ConversationList } from "@/components/dashboard/conversation-list";
 import { ChatWindow } from "@/components/dashboard/chat-window";
 import { CustomerDetails } from "@/components/dashboard/customer-details";
-import { Conversation, Message, InternalNote } from "@/lib/types";
+import { Conversation, Message, InternalNote, Agent } from "@/lib/types";
 import { useDashboardSocket } from "@/hooks/use-dashboard-socket";
 import {
     fetchConversations,
@@ -15,18 +15,21 @@ import {
     archiveConversation,
     reopenConversation,
     deleteConversation,
+    assignConversation,
 } from "@/lib/api/conversation";
 import {
     fetchInternalNotes,
     createInternalNote,
     deleteInternalNote,
 } from "@/lib/api/note";
+import { fetchAgents } from "@/lib/api/agent";
 
 export default function DashboardPage() {
     const { user } = useAppSelector((state) => state.auth);
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [messages, setMessages] = useState<Record<string, Message[]>>({});
     const [notes, setNotes] = useState<Record<string, InternalNote[]>>({});
+    const [agents, setAgents] = useState<Agent[]>([]);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [onlineVisitors, setOnlineVisitors] = useState<string[]>([]);
     // Stores the conversationId where the visitor is currently typing (null = no one typing)
@@ -62,11 +65,18 @@ export default function DashboardPage() {
         }
     }, []);
 
-    // Fetch initial conversations on mount
+    // Fetch initial conversations and agents on mount
     useEffect(() => {
         if (user) {
             // eslint-disable-next-line react-hooks/set-state-in-effect
             loadConversations();
+            fetchAgents()
+                .then((res) => {
+                    if (res.statusCode === 200 && res.data) {
+                        setAgents(res.data.agents || []);
+                    }
+                })
+                .catch((err) => console.error("Failed to fetch agents list:", err));
         }
     }, [user, loadConversations]);
 
@@ -152,6 +162,27 @@ export default function DashboardPage() {
             }
         } catch (error) {
             console.error("Failed to delete internal note:", error);
+        }
+    };
+
+    const handleAssignAgent = async (agentId: string) => {
+        if (!selectedId) return;
+        try {
+            const res = await assignConversation(selectedId, agentId);
+            if (res.statusCode === 200 && res.data) {
+                const { conversation: updatedConvo, message } = res.data;
+                setConversations((prev) =>
+                    prev.map((c) => (c.id === selectedId ? { ...c, ...updatedConvo } : c))
+                );
+                if (message) {
+                    setMessages((prev) => ({
+                        ...prev,
+                        [selectedId]: [...(prev[selectedId] || []), message],
+                    }));
+                }
+            }
+        } catch (error) {
+            console.error("Failed to assign conversation:", error);
         }
     };
 
@@ -255,9 +286,11 @@ export default function DashboardPage() {
                     conversation={activeConversation}
                     messages={activeMessages}
                     notes={activeNotes}
+                    agents={agents}
                     onSendMessage={sendMessage}
                     onSendNote={handleSendNote}
                     onDeleteNote={handleDeleteNote}
+                    onAssignAgent={handleAssignAgent}
                     onClaim={handleClaim}
                     onDelete={handleDelete}
                     isOnline={activeConversation ? onlineVisitors.includes(activeConversation.visitorId) : false}

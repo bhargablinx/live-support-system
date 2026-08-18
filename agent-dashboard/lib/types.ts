@@ -9,7 +9,7 @@ export type ConversationStatus =
     | "RESOLVED"
     | "ARCHIVED";
 
-export type SenderType = "VISITOR" | "AGENT";
+export type SenderType = "VISITOR" | "AGENT" | "SYSTEM";
 
 export type StatusFilter = "All" | "ADMIN" | "AGENT";
 
@@ -287,4 +287,12 @@ export interface InternalNoteCreatedPayload {
 export interface InternalNoteDeletedPayload {
     conversationId: string;
     noteId: string;
+}
+
+export interface ConversationAssignedPayload {
+    conversationId: string;
+    conversation: Conversation;
+    previousAgentId?: string | null;
+    newAgentId: string;
+    message: Message;
 }

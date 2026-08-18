@@ -14,6 +14,8 @@ interface UseDashboardSocketProps {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onInternalNoteCreated?: (payload: { conversationId: string; note: any }) => void;
     onInternalNoteDeleted?: (payload: { conversationId: string; noteId: string }) => void;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onConversationAssigned?: (payload: { conversationId: string; conversation: Conversation; message: Message }) => void;
 }
 
 export function useDashboardSocket({
@@ -26,6 +28,7 @@ export function useDashboardSocket({
     selectedId,
     onInternalNoteCreated,
     onInternalNoteDeleted,
+    onConversationAssigned,
 }: UseDashboardSocketProps) {
     const { user } = useAppSelector((state) => state.auth);
     const socketRef = useRef<Socket | null>(null);
@@ -163,6 +166,30 @@ export function useDashboardSocket({
         socket.on("internal_note_deleted", (payload: { conversationId: string; noteId: string }) => {
             if (onInternalNoteDeleted) {
                 onInternalNoteDeleted(payload);
+            }
+        });
+
+        // Listen for conversation assignment / transfer
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        socket.on("conversation_assigned", (payload: { conversationId: string; conversation: any; message: any }) => {
+            const { conversationId, conversation, message } = payload;
+            setConversations((prev) =>
+                prev.map((c) => (c.id === conversationId ? { ...c, ...conversation } : c))
+            );
+
+            if (message) {
+                setMessages((prev) => {
+                    const existing = prev[conversationId] || [];
+                    if (existing.some((m) => m.id === message.id)) return prev;
+                    return {
+                        ...prev,
+                        [conversationId]: [...existing, message],
+                    };
+                });
+            }
+
+            if (onConversationAssigned) {
+                onConversationAssigned(payload);
             }
         });
 
