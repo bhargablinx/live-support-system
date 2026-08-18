@@ -24,6 +24,7 @@ enum ConversationStatus {
 enum SenderType {
   VISITOR
   AGENT
+  SYSTEM
 }
 
 model Organization {

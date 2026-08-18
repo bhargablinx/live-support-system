@@ -30,3 +30,13 @@ export const conversationIdParamSchema = z.object({
             .min(1, "Conversation ID is required"),
     }),
 });
+
+export const assignConversationSchema = z.object({
+    params: z.object({
+        id: z.string().trim().min(1, "Conversation ID is required"),
+    }),
+    body: z.object({
+        agentId: z.string().trim().min(1, "Target agent ID is required"),
+    }),
+});
+

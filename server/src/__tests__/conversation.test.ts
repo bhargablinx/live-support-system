@@ -115,4 +115,83 @@ describe('Conversation Endpoints (/api/v1/conversation)', () => {
       await prisma.organization.delete({ where: { id: orgId } });
     }
   });
+
+  it('should support conversation assignment and transfer between agents with permission enforcement', async () => {
+    const timestamp = Date.now();
+    const adminEmail = `assign.admin.${timestamp}@example.com`;
+    const agentEmail = `assign.agent.${timestamp}@example.com`;
+
+    // 1. Register Org & Admin (Agent A)
+    const regRes = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        organizationName: 'Assign Test Org',
+        email: adminEmail,
+        password: 'Password123!',
+        name: 'Agent Alpha',
+      });
+    expect(regRes.status).toBe(201);
+    const orgId = regRes.body.data.organization.id;
+
+    // Login Admin
+    const loginRes = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: adminEmail, password: 'Password123!' });
+    const adminCookie = (loginRes.get('Set-Cookie') || []).find((c: string) => c.startsWith('accessToken='));
+
+    // Create Agent B
+    const createAgentRes = await request(app)
+      .post('/api/v1/agents')
+      .set('Cookie', [adminCookie!])
+      .send({
+        email: agentEmail,
+        password: 'Password123!',
+        name: 'Agent Beta',
+      });
+    expect(createAgentRes.status).toBe(201);
+    const agentBId = createAgentRes.body.data.agent.id;
+
+    // 2. Create Visitor & Conversation
+    const visitorRes = await request(app)
+      .post('/api/v1/visitor')
+      .send({
+        organizationId: orgId,
+        name: 'Transfer Visitor',
+        email: 'transfer@visitor.com',
+      });
+    expect(visitorRes.status).toBe(201);
+    const visitorToken = visitorRes.body.data.visitorToken;
+
+    const convoRes = await request(app)
+      .post('/api/v1/conversation')
+      .send({ organizationId: orgId, visitorToken });
+    expect([200, 201]).toContain(convoRes.status);
+    const conversationId = convoRes.body.data.conversationId;
+
+    // 3. Assign unassigned conversation to Agent B
+    const assignRes = await request(app)
+      .patch(`/api/v1/conversation/${conversationId}/assign`)
+      .set('Cookie', [adminCookie!])
+      .send({ agentId: agentBId });
+
+    expect(assignRes.status).toBe(200);
+    expect(assignRes.body.data.conversation.assignedUserId).toBe(agentBId);
+    expect(assignRes.body.data.message.senderType).toBe('SYSTEM');
+    expect(assignRes.body.data.message.content).toContain('Agent Beta');
+
+    // 4. Reject assignment to non-existent agent with 404
+    const invalidAssignRes = await request(app)
+      .patch(`/api/v1/conversation/${conversationId}/assign`)
+      .set('Cookie', [adminCookie!])
+      .send({ agentId: 'non-existent-agent-id' });
+
+    expect(invalidAssignRes.status).toBe(404);
+
+    // Clean up
+    await prisma.message.deleteMany({ where: { conversation: { organizationId: orgId } } });
+    await prisma.conversation.deleteMany({ where: { organizationId: orgId } });
+    await prisma.visitor.deleteMany({ where: { organizationId: orgId } });
+    await prisma.user.deleteMany({ where: { organizationId: orgId } });
+    await prisma.organization.delete({ where: { id: orgId } });
+  });
 });

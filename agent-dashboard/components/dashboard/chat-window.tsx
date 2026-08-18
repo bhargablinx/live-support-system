@@ -2,15 +2,15 @@
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useAppSelector } from "@/lib/store/store";
-import { Conversation, Message, InternalNote } from "@/lib/types";
+import { Conversation, Message, InternalNote, Agent } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Command, CommandList, CommandItem, CommandEmpty, CommandGroup } from "@/components/ui/command";
-import { Send, Smile, Paperclip, MoreHorizontal, Inbox, UserPlus, Bolt, Trash2, Loader2, Lock, StickyNote, MessageSquare } from "lucide-react";
+import { Send, Smile, Paperclip, MoreHorizontal, Inbox, UserPlus, Bolt, Trash2, Loader2, Lock, StickyNote, MessageSquare, ArrowRightLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { uploadFile } from "@/lib/api/upload";
 
@@ -18,6 +18,7 @@ interface ChatWindowProps {
     conversation: Conversation | null;
     messages: Message[];
     notes?: InternalNote[];
+    agents?: Agent[];
     onSendMessage: (content: string, attachments?: Array<{
         fileUrl: string;
         fileName: string;
@@ -26,6 +27,7 @@ interface ChatWindowProps {
     }>) => void;
     onSendNote?: (content: string) => Promise<void>;
     onDeleteNote?: (noteId: string) => Promise<void>;
+    onAssignAgent?: (agentId: string) => Promise<void>;
     onClaim?: () => void;
     onDelete?: () => void;
     isOnline?: boolean;
@@ -44,9 +46,11 @@ export function ChatWindow({
     conversation,
     messages,
     notes = [],
+    agents = [],
     onSendMessage,
     onSendNote,
     onDeleteNote,
+    onAssignAgent,
     onClaim,
     onDelete,
     isOnline = false,
@@ -241,13 +245,51 @@ export function ChatWindow({
                     </div>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                     {conversation.assignedUserId && (
                         <div className="text-xs text-muted-foreground font-medium bg-muted px-2.5 py-1 rounded-md">
                             {isClaimedByMe
                                 ? "Assigned to You"
                                 : `Assigned to ${conversation.assignedUser?.name || conversation.assignedUser?.email || "Agent"}`}
                         </div>
+                    )}
+                    {(isClaimedByMe || isUnassigned || user?.role === "ADMIN") && onAssignAgent && (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger render={
+                                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs font-medium border-border shadow-2xs">
+                                    <ArrowRightLeft className="h-3.5 w-3.5 text-muted-foreground" />
+                                    <span>{conversation.assignedUserId ? "Transfer" : "Assign"}</span>
+                                </Button>
+                            } />
+                            <DropdownMenuContent align="end" className="w-56">
+                                <DropdownMenuLabel className="text-xs font-semibold">
+                                    {conversation.assignedUserId ? "Transfer ticket to..." : "Assign ticket to..."}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {agents.length === 0 ? (
+                                    <div className="p-2 text-xs text-muted-foreground text-center">No agents available</div>
+                                ) : (
+                                    agents.map((ag) => {
+                                        const isCurrent = ag.id === conversation.assignedUserId;
+                                        return (
+                                            <DropdownMenuItem
+                                                key={ag.id}
+                                                disabled={isCurrent}
+                                                onClick={() => onAssignAgent(ag.id)}
+                                                className="cursor-pointer flex items-center justify-between text-xs py-2"
+                                            >
+                                                <span className="font-medium truncate">{ag.name || ag.email}</span>
+                                                {isCurrent && (
+                                                    <span className="text-[10px] text-muted-foreground font-semibold bg-muted px-1.5 py-0.5 rounded">
+                                                        Assigned
+                                                    </span>
+                                                )}
+                                            </DropdownMenuItem>
+                                        );
+                                    })
+                                )}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     )}
                     <div className="flex items-center gap-1">
                         <DropdownMenu>
@@ -369,6 +411,16 @@ export function ChatWindow({
                                 }
 
                                 const m = item.data;
+                                if (m.senderType === "SYSTEM") {
+                                    return (
+                                        <div key={`sys-${m.id}`} className="w-full flex items-center justify-center my-2">
+                                            <span className="text-[11px] font-medium px-3.5 py-1 rounded-full bg-muted/70 text-muted-foreground border border-border/50 shadow-2xs">
+                                                {m.content}
+                                            </span>
+                                        </div>
+                                    );
+                                }
+
                                 const isAgent = m.senderType === "AGENT";
 
                                 return (

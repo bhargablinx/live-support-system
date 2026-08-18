@@ -689,6 +689,127 @@ const getLatestConversation = asyncHandler(async (req: Request, res: Response) =
     );
 });
 
+const assignConversation = asyncHandler(async (req: Request, res: Response) => {
+    const id = req.params.id as string;
+    const { agentId } = req.body;
+    const user = req.user;
+
+    if (!user) {
+        throw new ApiError({
+            statusCode: 401,
+            message: "Unauthorized",
+            error: "Unauthorized",
+        });
+    }
+
+    const conversation = await prisma.conversation.findFirst({
+        where: {
+            id,
+            organizationId: user.organizationId
+        }
+    });
+
+    if (!conversation) {
+        throw new ApiError({
+            statusCode: 404,
+            message: "Conversation not found",
+            error: "Not Found",
+        });
+    }
+
+    // Permission check: only current assignee, unassigned, or ADMIN can assign/transfer ticket
+    if (
+        conversation.assignedUserId &&
+        conversation.assignedUserId !== user.id &&
+        user.role !== "ADMIN"
+    ) {
+        throw new ApiError({
+            statusCode: 403,
+            message: "You do not have permission to reassign this conversation",
+            error: "Forbidden",
+        });
+    }
+
+    // Verify target agent exists in the same organization
+    const targetAgent = await prisma.user.findFirst({
+        where: {
+            id: agentId as string,
+            organizationId: user.organizationId
+        }
+    });
+
+    if (!targetAgent) {
+        throw new ApiError({
+            statusCode: 404,
+            message: "Target agent not found in organization",
+            error: "Not Found",
+        });
+    }
+
+    const previousAgentId = conversation.assignedUserId;
+    const isTransfer = Boolean(previousAgentId && previousAgentId !== agentId);
+    const agentName = targetAgent.name || targetAgent.email;
+    const systemMessageContent = isTransfer
+        ? `Conversation transferred to ${agentName}`
+        : `Conversation assigned to ${agentName}`;
+
+    const [updatedConversation, systemMessage] = await prisma.$transaction([
+        prisma.conversation.update({
+            where: { id },
+            data: {
+                assignedUserId: agentId as string,
+                status: "CLAIMED"
+            },
+            include: {
+                visitor: true,
+                assignedUser: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true
+                    }
+                },
+                tags: {
+                    include: {
+                        tag: true
+                    }
+                }
+            }
+        }),
+        prisma.message.create({
+            data: {
+                conversationId: id,
+                content: systemMessageContent,
+                senderType: "SYSTEM"
+            }
+        })
+    ]);
+
+    const io = req.app.get("io");
+    if (io) {
+        const payload = {
+            conversationId: id,
+            conversation: updatedConversation,
+            previousAgentId,
+            newAgentId: agentId,
+            message: systemMessage
+        };
+        io.to(`org_${user.organizationId}`).emit("conversation_assigned", payload);
+        io.to(id).emit("conversation_assigned", payload);
+    }
+
+    return res.status(200).json(
+        new ApiResponse({
+            statusCode: 200,
+            message: "Conversation assigned successfully",
+            data: {
+                conversation: updatedConversation,
+                message: systemMessage
+            }
+        })
+    );
+});
+
 export {
     createConversation,
     getConversations,
@@ -700,5 +821,6 @@ export {
     reopenConversation,
     deleteConversation,
     isConversationResolved,
-    getLatestConversation
+    getLatestConversation,
+    assignConversation
 }

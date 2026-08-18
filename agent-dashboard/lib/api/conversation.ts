@@ -80,3 +80,16 @@ export const deleteConversation = async (id: string): Promise<ApiResponse<{ id: 
         throw error;
     }
 };
+
+export const assignConversation = async (
+    id: string,
+    agentId: string
+): Promise<ApiResponse<{ conversation: Conversation; message: Message }>> => {
+    try {
+        const response = await api.patch(`/conversation/${id}/assign`, { agentId });
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
