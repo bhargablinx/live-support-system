@@ -10,7 +10,8 @@ import {
     reopenConversation,
     deleteConversation,
     isConversationResolved,
-    getLatestConversation
+    getLatestConversation,
+    assignConversation
 } from "../controllers/conversation.controller.js";
 import { addTagToConversation, removeTagFromConversation } from "../controllers/tag.controller.js";
 import { getNotes, createNote, updateNote, deleteNote } from "../controllers/note.controller.js";
@@ -20,7 +21,8 @@ import { validate } from "../middleware/validate.middleware.js";
 import {
     createConversationSchema,
     getLatestConversationSchema,
-    conversationIdParamSchema
+    conversationIdParamSchema,
+    assignConversationSchema
 } from "../validators/conversation.validator.js";
 import {
     addConversationTagSchema,
@@ -38,6 +40,7 @@ router.post("/", widgetLimiter, orgLimiter, validate(createConversationSchema), 
 router.get("/", verifyJwt, userLimiter, orgLimiter, getConversations);
 router.get("/latest", visitorLimiter, orgLimiter, validate(getLatestConversationSchema), getLatestConversation);
 router.post("/:id/claim", verifyJwt, userLimiter, orgLimiter, validate(conversationIdParamSchema), claimConversation);
+router.patch("/:id/assign", verifyJwt, userLimiter, orgLimiter, validate(assignConversationSchema), assignConversation);
 router.post("/:id/resolve", verifyJwt, userLimiter, orgLimiter, validate(conversationIdParamSchema), resolveConversation);
 router.post("/:id/archive", verifyJwt, userLimiter, orgLimiter, validate(conversationIdParamSchema), archiveConversation);
 router.post("/:id/reopen", verifyJwt, userLimiter, orgLimiter, validate(conversationIdParamSchema), reopenConversation);
